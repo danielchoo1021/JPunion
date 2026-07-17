@@ -1,0 +1,132 @@
+@extends('layouts.admin_app')
+<style type="text/css">
+	@media print{
+		@page {
+			size: landscape;
+			margin: 4mm 0mm;
+		}
+	}
+
+	
+</style>
+@section('content')
+	<a href="#" class="print-window" style="display: none;">
+		<i class="fa fa-print"></i> {{ isset($data['backendlang']['backendlang']['Print']) ? $data['backendlang']['backendlang']['Print'] :'' }}
+	</a>
+	<div class="form-group">
+		<table class="table">
+			<tr>
+				<td>
+					<div class="form-group">
+						<h3><b>{{ !empty($data['web_setting']->invoice_name) ? $data['web_setting']->invoice_name : $data['admin']->company_name }}</b></h3>
+					</div>
+					<div class="form-group">
+						<p>{{ isset($data['backendlang']['backendlang']['Print_Dates']) ? $data['backendlang']['backendlang']['Print_Dates'] :'' }}: {{ date('d/m/Y H:i:s') }}</p>
+					</div>
+				</td>
+				<td align="right">
+					<div class="form-group">
+						<h3><b>{{ isset($data['backendlang']['backendlang']['Commission_Report']) ? $data['backendlang']['backendlang']['Commission_Report'] :'' }}</b></h3>
+					</div>
+					<div class="form-group">
+						<p>{{ isset($data['backendlang']['backendlang']['Report_Dates']) ? $data['backendlang']['backendlang']['Report_Dates'] :'' }}: {{ $startDate.' - '.$endDate }}</p>
+					</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<table class="table table-bordered">
+		<thead>
+			<tr class="success">
+				<th>#</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Commission_Date_Time']) ? $data['backendlang']['backendlang']['Commission_Date_Time'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Commission_Type']) ? $data['backendlang']['backendlang']['Commission_Type'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Transaction_Number']) ? $data['backendlang']['backendlang']['Transaction_Number'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Agent_Name']) ? $data['backendlang']['backendlang']['Agent_Name'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Agent_Code']) ? $data['backendlang']['backendlang']['Agent_Code'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Downline_Name']) ? $data['backendlang']['backendlang']['Downline_Name'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Downline_Code']) ? $data['backendlang']['backendlang']['Downline_Code'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Transaction_Amount']) ? $data['backendlang']['backendlang']['Transaction_Amount'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Percentage_Amount']) ? $data['backendlang']['backendlang']['Percentage_Amount'] :'' }}</th>
+				<th>{{ isset($data['backendlang']['backendlang']['Commission_Amount']) ? $data['backendlang']['backendlang']['Commission_Amount'] :'' }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			@php
+				$totalCommission = 0;
+				$a=0;
+			@endphp
+			@foreach($commissions as $commission)
+			<tr>
+				<td>{{ $a+1 }}</td>
+				<td>{{ $commission->created_at }}</td>
+				<td>
+						{{ $commission->comm_desc }}
+				</td>
+				<td>
+					@if(!empty($commission->transaction_no))
+					{{ $commission->transaction_no }}
+					@else
+					<i class="fa fa-minus"></i>
+					@endif
+				</td>
+				<td>
+					@if(!empty($commission->agentName))
+					{{ $commission->agentName }}
+					@else
+					<i class="fa fa-minus"></i>
+					@endif
+				</td>
+				<td>
+					{{ $commission->agentCode }}
+				</td>
+				<td>
+					@if(!empty($commission->from_user) || !empty($commission->buyerName))
+					{{ !empty($commission->from_user) ? $commission->from_user : $commission->buyerName }}
+					@else
+					<i class="fa fa-minus"></i>
+					@endif
+				</td>
+				<td>
+					@if(!empty($commission->buyerCode))
+					{{ $commission->buyerCode }}
+					@else
+					<i class="fa fa-minus"></i>
+					@endif
+				</td>
+				<td>
+					{{ number_format($commission->product_amount, 2) }}
+				</td>
+				<td>
+					@if($commission->comm_pa_type != 'Percentage')
+						RM {{ number_format($commission->comm_pa, 2) }}
+					@else
+						{{ number_format($commission->comm_pa, 2) }}%
+					@endif
+				</td>
+				<td>{{ $commission->comm_amount }}</td>
+			</tr>
+			@php
+				$a++;
+				$totalCommission += $commission->comm_amount;
+			@endphp
+			@endforeach
+			<tr class="warning">
+				<td colspan="10">{{ isset($data['backendlang']['backendlang']['Summary']) ? $data['backendlang']['backendlang']['Summary'] :'' }}</td>
+				<td>{{ $totalCommission }}</td>
+			</tr>
+		</tbody>
+	</table>
+@endsection
+
+@section('js')
+<script type="text/javascript">
+	$('.print-window').click(function() {
+	    window.print();
+	});
+	$(document).ready(function(){
+		$('.print-window').click();
+	});
+</script>
+@endsection

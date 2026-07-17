@@ -1,0 +1,7 @@
+[08-Nov-2023 15:16:11 Asia/Kuala_Lumpur] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 81000000 bytes) in /home/vessonmy/public_html/demo.vesson.my/newseller/vendor/dompdf/dompdf/lib/Cpdf.php on line 5640
+[08-Nov-2023 15:16:29 Asia/Kuala_Lumpur] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 81000000 bytes) in /home/vessonmy/public_html/demo.vesson.my/newseller/vendor/dompdf/dompdf/lib/Cpdf.php on line 5640
+[08-Nov-2023 16:03:55 Asia/Kuala_Lumpur] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 81000000 bytes) in /home/vessonmy/public_html/demo.vesson.my/newseller/vendor/dompdf/dompdf/lib/Cpdf.php on line 5640
+[21-Feb-2024 10:11:14 Asia/Kuala_Lumpur] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/vessonmy/public_html/demo.vesson.my/newseller/vendor/dompdf/dompdf/lib/Cpdf.php on line 5606
+[21-Feb-2024 10:11:15 Asia/Kuala_Lumpur] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/vessonmy/public_html/demo.vesson.my/newseller/vendor/dompdf/dompdf/lib/Cpdf.php on line 5796
+[21-Feb-2024 10:27:58 Asia/Kuala_Lumpur] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/vessonmy/public_html/demo.vesson.my/newseller/vendor/dompdf/dompdf/lib/Cpdf.php on line 5796
+[21-Feb-2024 10:27:58 Asia/Kuala_Lumpur] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/vessonmy/public_html/demo.vesson.my/newseller/vendor/dompdf/dompdf/lib/Cpdf.php on line 5606

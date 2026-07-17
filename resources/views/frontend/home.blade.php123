@@ -1,0 +1,3269 @@
+@extends('layouts.app')
+<link href="{{ asset('new_layout/css/style-sport.css') }}" rel="stylesheet">
+<style type="text/css">
+    .slick-prev:before {
+        text-decoration: none;
+        transition: all 500ms 100ms; 
+        opacity: 0.3;
+        color:#0000003d;
+        content: '\f104'; 
+        font-family: "Font Awesome 5 Pro"; 
+        font-weight: 900;
+        font-size: 90px;
+        position: absolute;
+        top: 31%;
+        transform: translate(0%, -50%);
+        left: 2px;
+        display: none;
+    }
+
+    .slick-next:before {
+        text-decoration: none;
+        transition: all 500ms 100ms; 
+        opacity: 0.3;
+        color:#0000003d;
+        content: '\f105'; 
+        font-family: "Font Awesome 5 Pro"; 
+        font-weight: 900;
+        font-size: 90px;
+        position: absolute;
+        top: 31%;
+        transform: translate(50%, -50%);
+        right: 0px;
+        display: none;
+    }
+
+    .slick-prev:hover:not(.slick-disabled), .slick-next:hover:not(.slick-disabled) {
+        text-decoration: none;
+    }
+
+    .slick-prev:hover:not(.slick-disabled):before, .slick-next:hover:not(.slick-disabled):before {
+        color: #00000042;
+    }
+
+    .countdown {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .countdown-item {
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        margin-right: 10px;
+        padding: 20px;
+        background: linear-gradient(to right, #022D24, #046854);
+        box-shadow: 0 1px 3px #022D24;
+    }
+
+    .countdown-value {
+        font-size: 20px;
+        color: #e5f5eb;
+        font-weight: 600;
+        border-bottom: 1px solid #1b4c43;
+    }
+
+    .countdown-label {
+        color: #b0bbb4;
+        font-weight: 700;
+        font-family: system-ui;
+        font-size: 16px;
+        text-transform: uppercase;
+    }
+
+    .hs-product-name {
+        text-decoration: none;
+        line-height: 1.625em;
+        transition: 0.2s ease-in-out;
+        display: block;
+        margin-bottom: 0.625em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        font-size: 27px;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 700;
+        color: #000000;
+        cursor: text;
+        -webkit-box-orient: vertical;
+    }
+
+    @media (max-width: 992px) {
+        .fs-container {
+            margin-bottom: 0px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .countdown-item {
+            margin-right: 5px;
+        }
+
+        .countdown-value {
+            font-size: 13px;
+        }
+
+        .countdown-label {
+            font-size: 5px;
+        }
+    }
+
+    @media (max-width: 540px) {
+        .hs-product-name {
+            font-size: 12px;
+        }
+    }
+
+    @media (max-width: 430px) {
+        .fs-margin {
+            margin-bottom: 0px;
+        }
+
+        .countdown-item {
+            padding: 10px;
+        }
+
+        .countdown-value {
+            font-size: 8px;
+        }
+
+        .countdown-label {
+            font-size: 3px;
+        }
+    }
+
+    .owl-nav {
+        text-align: inherit !important;
+        max-width: 100%;
+        margin-top: 0 !important;
+    }
+
+    .promotions__item {
+        height: 270px;
+        position: relative;
+    }
+
+    .promotions__item h5 {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        padding: 0 20px;
+        bottom: 20px;
+        text-align: center;
+    }
+
+    .promotions__item h5 a {
+        font-size: 18px;
+        color: #1c1c1c;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        padding: 12px 0 10px;
+        background: #ffffff;
+        display: block;
+    }
+
+    .owl-nav button {
+        border: none !important;
+        background-color: transparent !important;
+    }
+
+    @media only screen and (max-width: 767px){
+        .owl-prev {
+            left: -10px !important;
+        }
+    }
+
+    .fs-featured-item {
+        position: relative;
+        margin-top: 20px;
+        border-radius: 10px;
+        transition: transform 0.2s ease-in-out;
+        box-shadow: 0px 6px 10px -6px #022D24;
+        z-index: 1;
+    }
+
+    .fs-featured-item:hover {
+        background-color: #fff;
+        transform: scale(1.03);
+        z-index: 9999;
+    }
+
+    .fs-featured-item::after {
+        position: absolute;
+        content: "";
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 0; 
+        background: linear-gradient(to top, #022D24, #046854);
+        border-radius: 50px 50px 0 0;
+        transition: height 0.3s ease-in-out; 
+    }
+
+    .fs-featured-item:hover::after {
+        height: 10px;
+    }
+
+    .featured.spad {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .categories__slider.owl-carousel .owl-nav button {
+        height: auto !important;
+    }
+
+    .birthday_popup .modal-body img {
+        height: auto !important;
+    }
+
+    .container-slider {
+        position: relative;
+        width: 100%;
+        max-width: none !important;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        height: 0;
+        animation: CSFadeIn 2s forwards;
+    }
+
+    @keyframes CSFadeIn {
+        0% {
+            height: 0;
+        }
+        100% {
+            height: 100%;
+        }
+    }
+
+    .container-slider.show {
+        animation: none;
+        height: auto;
+    }
+
+    .sdr-slide1, .sdr-slide2, .sdr-slide {
+        position: absolute;
+        width: 100%;
+    }
+
+    .sdr-slide1 {
+        height: 100%; 
+        text-align: center;
+        animation-name: slideInFromTop;
+        animation-duration: 2s;
+        animation-timing-function: ease-out;
+        animation-fill-mode: forwards;
+        background-color: rgba(10, 10, 10, 0.133);
+    }
+
+    .sdr-slide2 {
+        height: 100%; 
+        text-align: center;
+        animation-name: slideInFromBottom;
+        animation-duration: 2s;
+        animation-timing-function: ease-out;
+        animation-fill-mode: forwards;
+        background-color: rgba(115, 112, 112, 0.138);
+    }
+
+    .sdr-slide {
+        animation-name: slideInFromBottom;
+        animation-duration: 2.5s;
+        animation-timing-function: ease-out;
+        animation-fill-mode: forwards;
+    }
+
+    @keyframes slideInFromTop {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 0.2;
+        }
+    }
+
+    @keyframes slideInFromBottom {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .btn-view-category {
+        font-family: system-ui;
+        position: relative;
+        width: 100%; 
+        height: 100%;
+        border: 0px;
+        background-color: transparent;
+        color: #7a0303;
+        font-size: 18px;
+        transition: background-color 0.7s ease-in-out, color 0.3s ease-in-out, transform 0.7s ease-in-out, opacity 0.7s ease-in-out;
+        /* border-radius: 15px; */
+        overflow: hidden;
+        text-align: center;
+        transform: scale(1);
+        backface-visibility: hidden;
+        will-change: transform; 
+    }
+
+    .btn-view-category::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 100%;
+        background: linear-gradient(230deg, #0000001a, #00000052);
+        transition: width 0.4s ease-in-out;
+    }
+
+    .btn-view-category:hover {
+        color: #fff;
+        opacity: 1;
+        padding: 2px;
+        --p: 10%;
+        /* --t: 1s;
+        --m: 10%; */
+        background: linear-gradient(to right, #0000004d, #fefefe) 0/var(--p) 100% no-repeat, 
+                    linear-gradient(to left, #0000004d, #fefefe) 100% 50%/var(--p) 100% no-repeat, 
+                    linear-gradient(to right, #0000004d, #0000003d) 100% 0%/var(--p) 30px no-repeat, 
+                    linear-gradient(to right, #00000038, #0000003d) 0% 100%/var(--p) 30px no-repeat;
+        /* background-color: transparent; */
+        /* padding: 30px 30px 30px 30px; */
+    }
+
+    .btn-view-category:hover::before {
+        width: 100%;
+    }
+
+    .btn-view-category span {
+        position: relative;
+        z-index: 1;
+        transform: translateZ(0);
+    }
+
+    .btn-view-category::after {
+        /* content: "\2192"; */
+        position: absolute;
+        transform: translate(-50%, -50%) scale(1);
+        top: 50%;
+        left: 50%;
+        opacity: 0;
+        transition: opacity 0.7s ease-in-out, transform 0.7s ease-in-out;
+    }
+
+    .btn-view-category:hover::after {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(6);
+    }
+
+    .btn-view-category:hover .categories-learn-more {
+        color: #fff;
+        transition: 0.5s ease-in-out;
+    }
+
+    .flash-sales-title { 
+        font-family: system-ui;
+        color: #000000; 
+        font-size: 50px; 
+        letter-spacing: 1.5px;
+        font-weight: 700;
+    }
+
+    /* .introduction-seven__wrapper.-top {
+        position: relative;
+        display: inline-block;
+        padding: 20px;
+        background-color: #ccc;
+        transition: transform 0.3s;
+    }
+
+    .introduction-seven__wrapper.-top::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 60%;
+        height: 100%;
+        background-color: #2cb95b13;
+        transform: skewX(-45deg);
+        transition: left 0.6s ease-out, transform 0.3s ease-out;
+        z-index: -9999;
+        opacity: 0.5;
+    }
+
+    .introduction-seven__wrapper.-top img {
+        transition: all 0.3s ease;
+    }
+
+    .introduction-seven__wrapper.-top:hover img {
+        transition: all 0.3s ease;
+    }
+
+    .introduction-seven__wrapper.-top:hover {
+        transform: scale(1);
+        transition: transform 0.3s ease;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3) inset;
+        background-color: #f1f1f1;
+    }
+
+    .introduction-seven__wrapper.-top:hover::before {
+        left: 5%;
+        transform: skewX(-45deg);
+        opacity: 0.6;
+    }
+
+    .introduction-seven__wrapper.-bottom {
+        position: relative;
+        display: inline-block;
+        padding: 20px;
+        background-color: #ccc;
+        transition: transform 0.3s;
+    }
+
+    .introduction-seven__wrapper.-bottom::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 60%;
+        height: 100%;
+        background-color: #2cb95b13;
+        transform: skewX(45deg);
+        transition: right 0.6s ease-out, transform 0.3s ease-out;
+        z-index: -9999;
+        opacity: 0.5;
+    }
+
+    .introduction-seven__wrapper.-bottom img {
+        transition: all 0.3s ease;
+    }
+
+    .introduction-seven__wrapper.-bottom:hover img {
+        transition: all 0.3s ease;
+    }
+
+    .introduction-seven__wrapper.-bottom:hover {
+        transform: scale(1);
+        transition: transform 0.3s ease;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3) inset;
+        background-color: #f1f1f1;
+    }
+
+    .introduction-seven__wrapper.-bottom:hover::before {
+        right: 7.3%;
+        transform: skewX(45deg);
+        opacity: 0.6;
+    } */
+
+    .container-box.hs-product-hvr {
+        position: relative;
+        transform: scale(1);
+        transition: transform 0.5s ease;
+    }
+
+    .container-box.hs-product-hvr:hover {
+        transform: scale(1.1);
+    }
+
+    .hs-container-box{
+        position: relative;
+        font-size: 13px; 
+        background-color: #fff; 
+        padding: 30px;
+        box-shadow: 0px 0px 6px 0 #ddd;
+        transform: scale(1);
+        transition: transform 0.5s ease;
+    }
+
+    .hs-container-box.hs-product-hvr:hover {
+        transform: scale(1.05);
+    }
+
+    .product-hs-brand {
+        color: #888;
+        font-size: 14px;
+        font-weight: normal;
+        line-height: 1;
+        text-transform: capitalize;
+    }
+
+    .img-hot-selling {
+        width: 100%; 
+        height: auto; 
+    }
+
+    .btn-hs-view-more {
+        float: left;
+        padding: 8px 20px;
+        background: transparent;
+        color: #fff;
+        border-radius: 10px;
+        cursor: pointer;
+        font-family: revert;
+        opacity: 1;
+        transition: 0.2s ease-in-out;
+        border: 2px solid #ededed;
+    }
+
+    .btn-hs-view-more:hover {
+        color: #000000;
+        text-shadow: 0 0 #000000;
+        background-color: #ededed;
+    }
+
+    .hot-selling-title { 
+        font-family: system-ui;
+        color: #000000; 
+        font-size: 50px; 
+        letter-spacing: 1.5px;
+        font-weight: 700;
+    }
+
+    .new-arrivals-title { 
+        font-family: system-ui;
+        color: #000000; 
+        font-size: 50px; 
+        letter-spacing: 1.5px;
+        font-weight: 700;
+    }
+
+    .container-cover {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: -40px;
+    }
+
+    .container-th-info {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center; 
+    }
+
+    .box-info {
+        margin: 0 auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-left: 100px;
+        padding-right: 100px;
+    }
+
+    .img-info {
+        display: block; 
+        margin: 0 auto; 
+        width: 80px;
+        height: 80px;
+        padding: 10px;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+
+    .img-info:hover {
+        transform: scale(1.1);
+    }
+
+    .img-size-repair-center {
+        padding: 17px;
+    }
+
+    .img-size-manuals {
+        padding: 15px;
+    }
+
+    .img-size-faqs {
+        padding: 4px; 
+    }
+
+    .txt-p-info-title {
+        margin: 0 auto;
+        font-family: system-ui;
+        color: #000000;
+        --p: 20%;
+        padding: 7px 0 7px 0;
+        font-size: 17px;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+    }
+
+    .txt-p-info-details {
+        margin: 0 auto;
+        font-family: system-ui;
+        color: #000000;
+        --p: 20%;
+        background: linear-gradient(to left, #960001, #960001) 50.6% 100%/var(--p) 5% no-repeat;
+        padding: 7px 0 7px 0;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+    }
+
+    /* .container-boxes {
+        display: flex;
+        flex-direction: row;
+        padding: 30px;
+        background-color: #fff;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .text-container {
+        flex: 1;
+        text-align: center;
+        border: none;
+        padding: 10px;
+        transition: transform 0.5s;
+    }
+
+    .scaled {
+        transform: scale(1.1);
+        transition: transform 2s;
+    }
+
+    .reset {
+        transform: none;
+        transition: transform 2s;
+    }
+
+    .boxes-number {
+        font-size: 60px;
+        color: #000000;
+        font-weight: 700;
+        font-family: system-ui;
+    }
+
+    .boxes-title {
+        font-size: 20px;
+        font-weight: 600;
+    } */
+
+    .product-categories-title {
+        position: absolute;  
+        display: block; 
+        text-align: center; 
+        margin-top: 20px; 
+        top: 0%; 
+        left: 50%; 
+        transform: translate(-50%, -50%);
+        font-family: system-ui;
+        /* color: #383838;  */
+        color: #7a0303;
+        font-size: 50px; 
+        letter-spacing: 1.5px;
+        font-weight: 700;
+        white-space: nowrap; 
+    }
+
+
+    .product-categories-subtitle {
+        position: absolute;
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        top: 0%;
+        left: 50%;
+        transform: translate(-50%, 130%);
+        font-family: system-ui;
+        color: #383838;
+        /* color: #7a0303; */
+        white-space: nowrap;
+        font-size: 20px;
+        font-weight: 500;
+        letter-spacing: 1.7px;
+    }
+
+    .product-categories-boxes {
+        margin-top: 130px;
+    }
+
+    .bnr-wrap {
+        height: 500px;
+    }
+
+    .categories-name {
+        font-size: 43px; 
+        font-weight: 700;
+        left: 60px;
+        top: 40%;
+        transform: translate(0%, -50%);
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .btn-view-category .categories-name {
+        /* opacity: 1;
+        transition: opacity 0.7s ease-in-out; */
+        transition: 0.5s ease-in-out;
+    }
+
+    .btn-view-category:hover .categories-name {
+        transition: 0.3s ease-in-out;
+    }
+
+    .category-div-line {
+        margin: 0 auto;
+        margin-top: 40px;
+        height: 2px;
+        width: 80%;
+        /* background-color: #393939; */
+        background-color: #ebeaea;
+        z-index: 9999;
+    }
+
+    .info-div-line {
+        margin: 0 auto;
+        margin-top: 40px;
+        height: 2px;
+        width: 10%;
+        background-color: #f7f7f7;
+        z-index: 9999;
+    }
+
+    .pc-container {
+        position: relative;
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        margin-bottom: 80px; 
+        width: 100%;
+        padding-right: 15px;
+        padding-left: 15px;
+        margin-right: auto;
+        margin-left: auto;
+    }
+
+    .categories-learn-more {
+        color: #7a0303;
+        font-size: 16px;
+        font-weight: normal;
+        /* transition: 0.5s ease-in-out; */
+    }
+
+    .section-title .-center {
+        margin-bottom: 4.875em;
+    }
+
+    .product-fs-text {
+        padding: 20px; 
+    }
+
+    .product-fs-text h6 {
+        height: 50px;
+        overflow: hidden;
+    }
+
+    .product-fs-text h5{
+        height: 50px;
+        overflow: hidden;
+    }
+    .product-fs-text span{
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .fs-product-name {
+        color: #000000 !important;
+        font-size: 20px;
+        font-weight: 700;
+    }
+    .fs-product-name {
+        font-size: 25px;
+    }
+
+    .introduction-seven__wrapper.-top {
+        position: relative;
+        display: inline-block;
+        padding: 20px;
+        background-color: #ccc;
+        /* transition: transform 0.3s; */
+    }
+
+    .introduction-seven__wrapper.-top::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 5%;
+        width: 60%;
+        height: 100%;
+        /* background-color: #2cb95b13;
+        transform: skewX(-45deg);
+        transition: left 0.6s ease-out, transform 0.3s ease-out, opacity 0.6s ease-out; */
+        z-index: -9999;
+        opacity: 0;
+    }
+
+    .introduction-seven__wrapper.-top img {
+        transition: all 0.3s ease;
+    }
+
+    .introduction-seven__wrapper.-top:hover img {
+        transition: all 0.3s ease;
+    }
+
+    /* .introduction-seven__wrapper.-top:hover {
+        transform: scale(1);
+        transition: transform 0.3s ease;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3) inset;
+        background-color: #f1f1f1;
+    }
+
+    .introduction-seven__wrapper.-top:hover::before {
+        left: 19.3%;
+        transform: skewX(-45deg);
+        opacity: 0.6;
+    } */
+
+    .col-12-first-image {
+        position: relative;
+        width: 100%;
+        padding-right: 5px;
+        padding-left: 5px;
+        flex: 0 0 100%;
+        max-width: 100%; 
+    }
+
+    .col-lg-first-image {
+        position: relative;
+        width: 100%;
+        padding-right: 5px;
+        padding-left: 5px;
+        flex: 0 0 75%;
+        max-width: 75%; 
+    }
+
+    .col-xl-6-first-image {
+        position: relative;
+        width: 100%;
+        padding-right: 5px;
+        padding-left: 5px;
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .introduction-seven__wrapper.-top .introduction-seven__wrapper__content__detail h3 {
+        float: left;
+        color: #4c4c4c;
+        font-size: 3.75em;
+        font-weight: 600;
+        line-height: 1;
+        margin-bottom: 0.66667em; 
+    }
+
+    .txt-color {
+        color: #fff;
+    }
+
+    .introduction-seven__wrapper__content.products-slider-top {
+        top: 80%;
+    }
+
+    .title-first-image-h3 {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        -webkit-line-clamp: 3;
+        -moz-line-clamp: 3;
+    }
+
+    .description-first-image {
+        float: left;
+        font-size: 16px;
+        text-align: left;
+        letter-spacing: 1.3px;
+        margin-bottom: 1.66667em;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        -webkit-line-clamp: 3;
+        -moz-line-clamp: 3;
+    }
+
+    .award-main {
+        padding: 10px; 
+        height: 10.5em; 
+        margin-right: 10px; 
+        outline: none; 
+        object-fit: cover;
+    }
+
+   .award-card__background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        transition: 0.5s ease-out;
+        transform-origin: bottom right; 
+    }
+
+    .award-card__background img {
+        height: 100%;
+        width: 100%;
+        padding-left: 20px;
+        padding-right: 20px;
+        object-fit: contain;
+    }
+
+    .category-one .award-card__content {
+        padding: 5.125em;  
+        text-align: center;
+    }
+
+    @media only screen and (max-width: 1700px) {
+        .category-one .award-card__content {
+            padding: 4.125em;
+        }
+    }
+
+    @media only screen and (max-width: 1600px) {
+        .category-one .award-card__content {
+            padding: 3.825em;
+        }
+
+        .title-first-image-h3 {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-line-clamp: 2;
+            -moz-line-clamp: 2;
+        }
+    }
+
+    @media only screen and (max-width: 1446px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 90%;
+        }
+
+        .col-xl-6-first-image {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        .container.padding-container {
+            padding-left: 80px;
+        }
+    }
+
+    @media only screen and (max-width: 1440px) {
+        .introduction-seven__wrapper.-top::before {
+            left: 0%;
+            display: none;
+        }
+
+        .introduction-seven__wrapper.-top:hover::before {
+            left: 0%;
+        }
+    }
+
+    @media only screen and (max-width: 1405px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 92%;
+        }
+    }   
+
+    @media only screen and (max-width: 1390px) {
+        .category-one .award-card__content {
+            padding: 3.525em;
+        }
+    }
+        
+    @media only screen and (max-width: 1304px) {
+        .container-cover {
+            margin-bottom: -90px;
+        }
+
+        .info-div-line {
+            margin-top: 0;
+        }
+    }
+
+    @media only screen and (max-width: 1301px) {
+        .btn-hs-view-more {
+            padding: 6px 15px;
+        }
+
+        .description-first-image {
+            font-size: 12px;
+        }
+
+        .container.padding-container {
+            padding-left: 150px;
+        }
+
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 91%;
+        }
+    }
+
+    @media only screen and (max-width: 1200px) {
+        .introduction-seven__wrapper.-top.padding-first-image {
+            background-size: 50%;
+        }
+    }
+
+    @media only screen and (max-width: 1198px) {
+        .container.padding-container {
+            padding-left: 150px;
+        }
+
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 101%;
+        }
+    }
+
+    @media only screen and (max-width: 1171px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 90%;
+        }
+
+        .introduction-seven__wrapper__image {
+            max-width: 45.5%;
+        }
+
+        .container.padding-container {
+            padding-left: 180px;
+        }
+    }
+
+
+    @media only screen and (max-width: 1170px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 50%;
+        }   
+    }
+
+    @media only screen and (max-width: 1169px) {
+        .container.padding-container {
+            padding-left: 130px;
+        }
+    }
+
+    @media only screen and (max-width: 1096px) {
+        .container.padding-container {
+            padding-left: 130px;
+        }
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 47%;
+        }
+    }
+
+    @media only screen and (max-width: 1065px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 45%;
+        }
+    }
+
+    @media only screen and (max-width: 1020px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 43%;
+        }
+    }
+
+    @media only screen and (max-width: 993px) {
+        .container.padding-container {
+            padding-left: 120px;
+        }
+    }
+
+    @media only screen and (max-width: 992px) {
+        .introduction-seven__wrapper.-top .introduction-seven__wrapper__content__detail h3 {
+            font-size: 2.05em;
+        }
+
+        .introduction-seven__wrapper.-top.padding-third-image {
+            padding: 20px 20px 250px 20px;
+        }
+
+        .description-first-image {
+            font-size: 10px;
+        }
+
+        .btn-hs-view-more {
+            font-size: 8px;
+        }
+
+        .introduction-seven__wrapper__content.products-slider-top {
+            position: absolute;
+            top: 55%;
+        }
+    }
+
+    @media only screen and (max-width: 975px) {
+        .description-first-image {
+            font-size: 10px;
+        }
+
+        .btn-hs-view-more {
+            font-size: 7px;
+        }
+    }
+
+    @media only screen and (max-width: 965px) {
+        .category-one .award-card__content {
+            padding: 3.025em;
+        }
+    }
+
+    @media only screen and (max-width: 958px) {
+        .col-xl-6-first-image {
+            flex: 0 0 40%;
+            max-width: 40%;
+        }
+    }
+
+    @media only screen and (max-width: 938px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 50%;
+        }
+    }
+
+    @media only screen and (max-width: 920px) {
+        .title-first-image-h3 {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-line-clamp: 1;
+            -moz-line-clamp: 1;
+        }
+    }
+
+    @media only screen and (max-width: 871px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 45%;
+        }
+    }
+
+    @media only screen and (max-width: 815px) {
+        .container.padding-container {
+            padding-left: 110px;
+        }
+
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 37%;
+        }
+    }
+
+    @media only screen and (max-width: 736px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 32%;
+        }
+    }
+    
+    @media only screen and (max-width: 707px) {
+        .btn-hs-view-more {
+            border: 1px solid #ededed;
+        }
+
+        .description-first-image {
+            font-size: 8px;
+        }
+    }
+
+    @media only screen and (max-width: 696px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 28%;
+        }
+    }
+
+    @media only screen and (max-width: 684px) {
+        .container.padding-container {
+            padding-left: 90px;
+        }
+    }
+
+    @media only screen and (max-width: 648px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 25%;
+        }
+    }
+
+    @media only screen and (max-width: 629px) {
+        .container.padding-container {
+            padding-left: 80px;
+        }
+    }
+
+    @media only screen and (max-width: 613px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 23%;
+        }
+    }
+
+    @media only screen and (max-width: 596px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 21%;
+        }
+    }
+
+    @media only screen and (max-width: 590px) {
+        .description-first-image {
+            font-size: 6px;
+        }
+
+        .btn-hs-view-more {
+            font-size: 5px;
+            padding: 4px 10px;
+        }
+    }
+
+    @media only screen and (max-width: 575px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 17%;
+        }   
+
+        .container.padding-container {
+            padding-left: 70px;
+        }
+    }
+
+    @media only screen and (max-width: 550px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 15%;
+        }
+    }
+
+    @media only screen and (max-width: 525px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 13%;
+        }
+    }
+
+    @media only screen and (max-width: 508px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 12%;
+        }
+    }
+
+    @media only screen and (max-width: 500px) {
+        .container.padding-container {
+            padding-left: 60px;
+        }
+    }
+
+    @media only screen and (max-width: 480px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 18%;
+        }
+    }
+
+    @media only screen and (max-width: 470px) {
+        .description-first-image {
+            font-size: 5px;
+        }
+    }
+
+    @media only screen and (max-width: 444px) {
+        .container.padding-container {
+            padding-left: 50px;
+        }
+    }
+
+    @media only screen and (max-width: 429px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 15%;
+        }
+
+        .container.padding-container {
+            padding-left: 40px;
+        }
+
+        .col-xl-6-first-image {
+            flex: 0 0 45%;
+            max-width: 45%;
+        }
+    }
+
+    @media only screen and (max-width: 409px) {
+        .container.padding-container {
+            padding-left: 50px;
+        }
+    }
+
+    @media only screen and (max-width: 404px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 13%;
+        }
+    }
+
+    @media only screen and (max-width: 400px) {
+        .btn-hs-view-more {
+            font-size: 4px;
+            padding: 3px 7px;
+        }
+    } 
+
+    @media only screen and (max-width: 395px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 11%;
+        }
+
+        .col-xl-6-first-image {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        .container.padding-container {
+            padding-left: 40px;
+        }
+    }
+
+    @media only screen and (max-width: 390px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 10%;
+        }
+    }   
+
+    @media only screen and (max-width: 357px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 8%;
+        }
+    }  
+
+    @media only screen and (max-width: 351px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 6%;
+        }
+    }
+
+    @media only screen and (max-width: 338px) {
+        .description-first-image {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-line-clamp: 2;
+            -moz-line-clamp: 2;
+        }
+    }
+
+    @media only screen and (max-width: 321px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 4%;
+        }
+    }
+
+    @media only screen and (max-width: 313px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 2%;
+        }
+    }
+
+    @media only screen and (max-width: 304px) {
+        .introduction-seven__wrapper__content.products-slider-top {
+            top: 0;
+        }
+    }
+
+
+    @media only screen and (max-width: 340px) {
+        .container.padding-container {
+            padding-left: 30px;
+        }
+    }
+
+    @media only screen and (max-width: 600px) {
+        .introduction-seven__wrapper.-top .introduction-seven__wrapper__content__detail h3 {
+            font-size: 1.05em;
+        }
+    }
+
+    @media only screen and (max-width: 550px) {
+        .introduction-seven__wrapper.-top.padding-first-image {
+            background-size: 40%;
+        }
+    }
+
+    @media only screen and (max-width: 548px) {
+        .introduction-seven__wrapper.-top.padding-first-image {
+            background-size: 45%;
+        }
+    }
+
+    @media only screen and (max-width: 480px) {
+        .introduction-seven__wrapper.-top.padding-first-image {
+            background-size: 30%;
+        }
+
+        .introduction-seven__wrapper.-top.padding-third-image {
+            padding: 20px 20px 140px 20px;
+        }
+    }
+
+    @media only screen and (max-width: 470px) {
+        .introduction-seven__wrapper.-top.padding-third-image {
+            padding: 20px 20px 130px 20px;
+        }
+    }
+
+    @media only screen and (max-width: 370px) {
+        .introduction-seven__wrapper.-top.padding-first-image {
+            background-size: 40%;
+        }
+    }
+
+    @media only screen and (max-width: 300px) {
+        .introduction-seven__wrapper.-top.padding-first-image {
+            background-size: 50%;
+        }
+    }
+
+    .introduction-seven__wrapper.-bottom {
+        position: relative;
+        display: inline-block;
+        /* padding: 20px; */
+        background-color: #ccc;
+        transition: transform 0.3s;
+    }
+
+    .introduction-seven__wrapper.-bottom::before {
+        content: "";
+        top: 0;
+        width: 60%;
+        height: 100%;
+        z-index: -9999;
+        opacity: 0.5;
+    }
+
+    .introduction-seven__wrapper.-bottom img {
+        transition: all 0.3s ease;
+    }
+
+    .introduction-seven-wrapper-image-fm {
+        max-width: 45.5%; 
+    }
+
+    .introduction-seven-wrapper-image-fm img {
+        height: 400px;
+        width: 100%;
+        object-fit: cover; 
+    }
+
+    .introduction-seven-wrapper-content-detail-fm h5 {
+        color: #383838;
+        font-size: 0.9375em;
+        font-weight: normal;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        margin-bottom: 2em; 
+    }
+    .introduction-seven-wrapper-content-detail-fm h3 {
+        color: #383838;
+        font-size: 3.75em;
+        font-weight: 600;
+        line-height: 1;
+        margin-bottom: 0.66667em; 
+    }
+    .introduction-seven-wrapper-content-detail-fm p {
+        color: #111;
+        font-size: 0.875em;
+        font-weight: normal;
+        line-height: 1.71429em;
+        margin-bottom: 2.85714em; 
+    }
+    .introduction-seven-wrapper-content-detail-fm {
+        /* padding-left: 3.25em;     */
+    }
+
+    .introduction-seven__wrapper-description {
+        /* color: #7a0303; */
+        font-size: 19px;
+        font-weight: 500;
+        letter-spacing: 0.4px;
+    }
+
+    .welcome-main-margin {
+        width: 100%;
+        padding-right: 15px;
+        padding-left: 15px;
+        margin-right: auto;
+        margin-left: auto;
+        max-width: 1500px; 
+        margin-top: 200px;
+        margin-bottom: 80px;
+    }
+
+    .welcome-margin {
+        margin-top: 70px;
+    }
+
+    .welcome-title {
+        font-family: sans-serif;
+        margin-bottom: 10px;
+        /* color: #4c4c4c; */
+        color: #7a0303;
+        font-size: 40px;
+        line-height: 1.5;
+        font-weight: 800;
+    }
+
+    .welcome-border-red {
+        height: 3px;
+        width: 20%;
+        margin: 35px 0 40px 0;
+        /* background-color: #a01718; */
+        background-color: #7a0303;
+        z-index: 9999;
+    }
+
+    @keyframes slideFromLeft {
+        0% {
+            transform: translateX(-100%); 
+            opacity: 0; 
+        }
+        100% {
+            transform: translateX(0%); 
+            opacity: 1; 
+        }
+    }
+
+    .slide-from-left {
+        animation: slideFromLeft 3s ease-out; 
+    }
+
+    @media only screen and (max-width: 1400px) {
+        .introduction-seven-wrapper-image-fm img {
+            height: 600px;
+            width: 100%;
+            object-fit: cover; 
+        } 
+    }
+
+    @media only screen and (max-width: 1299px) {
+        /* .introduction-seven-wrapper-content-detail-fm {
+            padding-left: 13.25em;
+        } */
+
+        .introduction-seven-wrapper-content-detail-fm {
+            padding-right: 0px;
+        }
+    }
+
+    @media only screen and (max-width: 1268px) {
+        .introduction-seven-wrapper-image-fm img {
+            float: right;
+            height: 400px;
+            width: 80%;
+            object-fit: cover;
+        }
+    }
+
+    @media only screen and (max-width: 1170px) {
+        .introduction-seven-wrapper-image-fm {
+            height: 400px;
+        }
+    }
+
+    /* @media only screen and (max-width: 1169px) { 
+        .introduction-seven__wrapper.-bottom .introduction-seven-wrapper-content-detail-fm {
+            padding-left: 13.25em;
+        }
+    } */
+
+    @media only screen and (max-width: 1104px) {
+        .introduction-seven-wrapper-image-fm img {
+            width: 90%;
+        }
+    }
+
+    @media only screen and (max-width: 1066px) {
+        /* .introduction-seven__wrapper.-bottom .introduction-seven-wrapper-content-detail-fm {
+            padding-left: 11.25em;
+        } */
+
+        .welcome-main-margin {
+            margin-top: 100px;
+        }
+    }
+
+    @media only screen and (max-width: 992px) {
+        .introduction-seven__wrapper.-bottom .introduction-seven-wrapper-content-detail-fm {
+            /* padding-left: 10px; */
+            font-size: 7px;
+            padding-top: 10px;
+        }
+
+        .introduction-seven-wrapper-content-detail-fm {
+            padding-right: 0; 
+        } 
+    }
+
+    @media only screen and (max-width: 991px) {
+        .introduction-seven-wrapper-image-fm img {
+            float: none;
+            width: 400px;
+            height: 400px
+        }
+
+        .introduction-seven-wrapper-image-fm {
+            max-width: 100%;
+            float: center;
+        }
+
+        .main-image-height {
+            margin-bottom: -300px;
+        }
+
+        .main-image-height img {
+            width: 400px;
+            height: 400px
+        }
+
+        .introduction-seven__wrapper-description {
+            font-size: 16px;
+        }
+
+        .welcome-main-margin {
+            margin-top: 0px;
+            padding-right: 20px;
+            padding-left: 20px;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+        }
+
+        .welcome-border-red {
+            height: 3px;
+            width: 10%;
+            margin: 15px 0 20px 0;
+            background-color: #a01718;
+            z-index: 9999;
+        } 
+    }
+
+    @media only screen and (max-width: 975px) {
+        .margin-main-image {
+            margin-bottom: 50px;
+        }
+    }
+
+    @media only screen and (max-width: 904px) {
+        .margin-main-image {
+            margin-bottom: 100px;
+        }
+    }
+
+    @media only screen and (max-width: 857px) {
+        .margin-main-image {
+            margin-bottom: 150px;
+        }
+    }
+
+    @media only screen and (max-width: 800px) {
+        .welcome-margin {
+            margin-top: 40px;
+        }
+
+        .welcome-title {
+            font-size: 22px;
+        }
+
+        .welcome-border-red {
+            height: 2px;
+            margin: 12px 0 17px 0;
+        }
+
+        .introduction-seven__wrapper-description {
+            font-size: 14px;
+        }   
+    } 
+
+    @media only screen and (max-width: 787px) {
+        .margin-main-image {
+            margin-bottom: 200px;
+        }
+    }
+
+    @media only screen and (max-width: 768px) {
+        .welcome-padding-left {
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+        
+        .introduction-seven-wrapper {
+            display: flex;
+            flex-direction: column-reverse; 
+        }
+
+        .introduction-seven-wrapper-image-fm {
+            margin-top: 40px;
+            padding-left: 15px;
+        }
+
+        .welcome-main-margin {
+            margin-bottom: 50px;
+        }
+
+        /* .welcome-home-page {
+            margin-left: 4px;
+        }   */
+
+        .title-first-image {
+            font-size: 17px;
+        }
+
+        .description-first-image {
+            font-size: 12px;
+            margin-bottom: 1.06667em;
+        }
+    }
+
+    @media only screen and (max-width: 717px) {
+        .margin-main-image {
+            margin-bottom: 250px;
+        }
+    }
+
+    @media only screen and (max-width: 663px) {
+        .description-first-image {
+            margin-bottom: 0.86667em;
+        }
+    }
+
+    @media only screen and (max-width: 651px) {
+        .margin-main-image {
+            margin-bottom: 300px;
+        }
+    }
+
+    @media only screen and (max-width: 610px) {
+        .description-first-image {
+            font-size: 11px;
+        }
+    }
+
+    @media only screen and (max-width: 575px) {
+        .margin-main-image {
+            margin-bottom: 350px;
+        }
+
+        .main-image-height {
+            margin-bottom: -370px;
+        }
+
+        .main-image-height img {
+            width: 300px;
+            height: 300px;
+        }
+
+        .introduction-seven-wrapper-image-fm img {
+            width: 300px;
+            height: 300px
+        }
+
+        .introduction-seven-wrapper-image-fm {
+            height: 300px;
+        }
+
+        .category-one .award-card__content {
+            padding: 3.625em;
+        }
+    }
+
+    @media only screen and (max-width: 540px) {
+        .details-product-name {
+            font-size: 12px;
+        }
+    }
+
+    @media only screen and (max-width: 500px) {
+        .welcome-border-red {
+            height: 1px;
+            width: 7%;
+            margin: 5px 0 10px 0;
+        }
+
+        .welcome-margin {
+            margin-top: 25px;
+        }
+
+        .description-first-image {
+            font-size: 10px;
+        }
+    }
+
+    @media only screen and (max-width: 492px) {
+        .title-first-image {
+            font-size: 16px;
+        }
+
+        .description-first-image {
+            font-size: 9px;
+        }
+    }
+
+    @media only screen and (max-width: 480px) {
+        .title-first-image {
+            font-size: 18px;
+        }
+    }
+
+    @media only screen and (max-width: 453px) {
+        .title-first-image {
+            font-size: 17px;
+        }
+
+        .description-first-image {
+            font-size: 8px;
+        }
+    }
+
+    @media only screen and (max-width: 452px) {
+        .category-one .award-card__content {
+            padding: 2.625em;
+        }
+    }
+
+    @media only screen and (max-width: 450px) {
+        .margin-main-image {
+            margin-bottom: 250px;
+        }
+
+        .main-image-height img {
+            width: 200px;
+            height: 200px;
+        }
+
+        .introduction-seven-wrapper-image-fm img {
+            width: 200px;
+            height: 200px
+        }
+
+        .introduction-seven-wrapper-image-fm {
+            height: 200px;
+        }
+
+        .introduction-seven-wrapper-image-fm {
+            margin-top: 25px;
+        }
+    }
+
+    @media only screen and (max-width: 416px) {
+        .description-first-image {
+            font-size: 7px;
+        }
+    }
+
+    @media only screen and (max-width: 400px) {
+        .category-one .award-card__content {
+            padding: 2.025em;
+        }
+    }
+
+    @media only screen and (max-width: 375px) {
+        .title-first-image {
+            font-size: 16px;
+        }
+
+        .description-first-image {
+            font-size: 6px;
+        }
+    }
+
+    #categories-div-show {
+        opacity: 0;
+        transition: opacity 2000ms;
+    }
+
+    #first-image-div-show {
+        opacity: 0;
+        transition: opacity 2000ms;
+    }
+
+    #products-slider-div-show {
+        opacity: 0;
+        transition: opacity 5000ms;
+    }
+
+    #award-div-show {
+        opacity: 0;
+        transition: opacity 5000ms;
+    }
+
+    #info-div-show {
+        opacity: 0;
+        transition: opacity 6000ms;
+    }
+
+    @media only screen and (max-width: 710px) {
+        .fs-product-name{
+            font-size: 15px;
+        }
+    }   
+
+    .product-fs-price {
+        font-size: 19px; 
+        color: #000000;
+        font-weight: 600;
+        line-height: 1;
+    }
+
+    .product-fs-original-price {
+        font-size: 12px; 
+        color: #000000; 
+        font-style: italic;
+    }
+
+    @media only screen and (max-width: 710px) {
+        .product-fs-price {
+            font-size: 15px; 
+        }
+
+        .product-fs-text {
+            margin-bottom: -10px; 
+        }   
+    }
+
+    @media only screen and (max-width: 490px) {
+        .fs-product-name{
+            font-size: 12px;
+        }
+        .product-fs-price {
+            font-size: 12px; 
+        }
+
+        .product-fs-original-price {
+            font-size: 10px;
+        }
+
+        .product-fs-text {
+            margin-bottom: -20px; 
+        } 
+        .pc-container {
+            margin-bottom: 20px; 
+        }
+
+        .welcome-main-margin {
+            margin-top: 50px;
+        }
+    }
+
+    @media only screen and (max-width: 1500px) {
+        .img-hot-selling {
+            width: 80%; 
+        }
+    }
+
+    @media only screen and (max-width: 1410px) {
+        .img-hot-selling {
+            width: 70%; 
+        }
+    }
+
+    @media only screen and (max-width: 1260px) {
+        .img-hot-selling {
+            width: 60%; 
+        }
+    }
+
+    @media only screen and (max-width: 1060px) {
+        .img-hot-selling {
+            width: 50%; 
+        }
+    } 
+
+    @media only screen and (max-width: 900px) {
+        .product-categories-subtitle {
+            transform: translate(-50%, 180%);
+            font-size: 15px;
+        }
+    } 
+
+    @media only screen and (max-width: 780px) {
+        .product-categories-subtitle {
+            transform: translate(-50%, 30%);
+            font-size: 11px;
+        }
+
+        .product-categories-boxes {
+            margin-top: 70px;
+        }
+    } 
+
+    @media only screen and (max-width: 680px) {
+        .hs-container-box{
+            padding: 20px;
+        }
+    }
+
+    @media only screen and (max-width: 550px) {
+        .hs-container-box{
+            padding: 15px;
+        }
+
+        .product-fs-text {
+            padding: 15px; 
+        }
+    }
+
+    @media only screen and (max-width: 590px) {
+        .img-hot-selling {
+            width: 40%; 
+        }
+    }
+
+    @media only screen and (max-width: 510px) {
+        .hs-container-box{
+            padding: 13px;
+        }
+    }
+
+    @media only screen and (max-width: 500px) {
+        .welcome-title {
+            font-size: 12px;
+        }
+
+        .introduction-seven__wrapper-description {
+            font-size: 9px;
+        }
+    }
+
+    @media only screen and (max-width: 475px) {
+        .product-fs-text {
+            padding: 10px; 
+        }
+    }
+
+    @media only screen and (max-width: 400px) {
+        .hs-container-box{
+            padding: 10px;
+        }
+
+        .welcome-main-margin {
+            margin-top: 20px;
+        }
+    }
+
+    @media only screen and (max-width: 310px) {
+        .hs-container-box{
+            padding: 8px;
+        }
+    }
+
+    @media only screen and (max-width: 780px) {
+        .holder-mt-xsmall {
+            margin-top: 60px;
+        }
+        
+        .product-categories-title {
+            font-size: 32px; 
+            margin-top: 0px; 
+        }
+
+        .flash-sales-title {
+            font-size: 32px; 
+        }
+
+        .hot-selling-title { 
+            font-size: 32px;
+        }
+    }
+
+    @media only screen and (max-width: 1401px) {
+        .bnr-wrap {
+            height: 400px;
+        }
+    }
+
+    @media only screen and (max-width: 1201px) {
+        .bnr-wrap {
+            height: 300px;
+        }
+    }
+
+    @media only screen and (max-width: 1140px) {
+        .categories-name {
+            font-size: 25px; 
+        }
+
+        .categories-learn-more {
+            color: #747474;
+            font-size: 13px;
+        }
+    }
+
+    @media only screen and (max-width: 1001px) {
+        .bnr-wrap {
+            height: 250px;
+        }
+    }
+
+    @media only screen and (max-width: 900px) {
+        .categories-name {
+            font-size: 20px; 
+            left: 30px;
+        }
+
+        .categories-learn-more {
+            font-size: 10px;
+        }
+    }
+
+    @media only screen and (max-width: 801px) {
+        .bnr-wrap {
+            height: 200px;
+        }
+    }
+
+    @media only screen and (max-width: 650px) {
+        .categories-name {
+            left: 20px;
+            font-size: 18px; 
+        }
+
+        .categories-learn-more {
+            font-size: 8px;
+        }
+    }
+
+    @media only screen and (max-width: 601px) {
+        .bnr-wrap {
+            height: 150px;
+        }
+
+        .categories-name {
+            font-size: 15px; 
+        }
+
+        .categories-learn-more {
+            font-size: 6px;
+        }
+    }
+
+    @media only screen and (max-width: 550px) {
+        .pc-container {
+            padding-left: 10px;
+            padding-right: 10px;
+        }   
+    }
+
+    @media only screen and (max-width: 450px) {
+        .categories-name {
+            font-size: 13px; 
+        }
+    }
+
+    @media only screen and (max-width: 425px) {
+        .pc-container {
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+
+        .btn-view-category:hover {
+            padding: 1px;
+        }
+    }
+
+    @media only screen and (max-width: 501px) {
+        .bnr-wrap {
+            height: 130px;
+        }
+    }
+
+    @media only screen and (max-width: 401px) {
+        .bnr-wrap {
+            height: 110px;
+        }
+    }
+
+    @media only screen and (max-width: 378px) {
+        .bnr-wrap {
+            height: 90px;
+        }
+    }
+    
+    @media only screen and (max-width: 350px) {
+        .categories-name {
+            font-size: 10px; 
+        }
+
+        .introduction-seven-wrapper-image-fm img {
+            width: 150px;
+            height: 150px;
+        }
+
+        .introduction-seven-wrapper-image-fm {
+            height: 150px;
+        }
+    }
+
+    @media only screen and (max-width: 330px) {
+        .bnr-wrap {
+            height: 70px;
+        }
+    }
+
+    @media only screen and (max-width: 600px) {
+        .holder-mt-xsmall {
+            margin-top: 30px;
+        }
+
+        .section-title .-center {
+            margin-top: 1em;
+        }
+
+        .product-categories-title {
+            font-size: 20px; 
+            transform: translate(-50%, -100%);
+            white-space: nowrap;
+        }
+
+        .product-categories-subtitle {
+            margin-top: 2px;
+            transform: translate(-50%, 0%);
+            font-size: 7px;
+            letter-spacing: 1.3px;
+        }
+
+        .product-categories-boxes {
+            margin-top: 30px;
+        }
+
+        .flash-sales-title {
+            font-size: 20px; 
+            white-space: nowrap;
+        }
+
+        .hot-selling-title { 
+            font-size: 20px; 
+            white-space: nowrap;
+        }
+
+        .btn-view-category:hover::after {
+            transform: translate(-50%, -50%) scale(3);
+        }
+
+        .category-div-line {
+            margin-top: 20px;
+        }
+    }
+   
+    @media (max-width: 1345px) { 
+        .box-info {
+            padding-left: 50px;
+            padding-right: 50px;
+        }
+
+        .txt-p-info-title {
+            font-size: 13px;
+        }
+
+        .txt-p-info-details {
+            --p: 15%;
+            font-size: 10px;
+        }
+    }
+
+    @media only screen and (max-width: 574px) {
+        .txt-p-info-title {
+            font-size: 10px;
+        }
+
+        .img-info {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+        }
+
+        .img-size-repair-center {
+            padding: 5px;
+        }
+
+        .img-size-manuals {
+            padding: 3px;
+        }
+
+        .img-size-faqs {
+            padding: 0px; 
+        }
+
+        .txt-p-info-details {
+            --p: 15%;
+            font-size: 8px;
+        }
+    }
+
+    @media (max-width: 480px) { 
+        .container-th-info {
+            padding: 3px;
+        }
+    }
+
+    @media (max-width: 450px) { 
+        .slick-prev:before {
+            font-size: 60px;
+        }
+
+        .slick-next:before {
+            font-size: 60px;
+        }
+    }
+
+    @media (max-width: 440px) {
+        .product-hs-brand {
+            font-size: 10px;
+        }
+
+        .product-content__header {
+            margin-bottom: 0px;
+        }
+    }
+
+    @media only screen and (max-width: 335px) {
+        .category-one .award-card__content {
+            padding: 3.625em;
+        }
+    }
+
+</style>
+@section('content')
+<div class="container-slider">
+    <div class="sdr-slide1"></div>
+    <div class="sdr-slide2"></div>
+    <div class="bnslider-wrapper lazyload fade-up">
+        <div class="bnslider keep-scale" data-start-width='1920' data-start-height='750' data-start-mwidth='170' data-start-mheight='70' id="bnslider-1593083021147" data-autoplay="true" data-speed="5000">
+            @if(!$banners->isEmpty()) 
+                @foreach($banners as $bannerkey => $banner)
+                    <div class="bnslider-slide" data-autoplay="true" data-video-type="video">
+                    <div class="bnslider-image-mobile lazyload fade-up-fast" data-bgset="{{ url($banner->image) }}" data-sizes="auto"></div>
+                    <div class="bnslider-image lazyload fade-up-fast" data-bgset="{{ url($banner->image) }}" data-sizes="auto"></div>
+                        <!-- <div class="bnslider-text order-1 mt-sm bnslider-text--lg text-center" data-animation="flipX" data-animation-delay="800" data-fontcolor="#000000" data-bgcolor="" data-fontweight="600" data-fontline="1.5" data-otherstyle="">Stop smoking <i style="font-size: 0.6em; padding: 0 1em; position: relative; top: -.2em;" class="icon-arrow-right-long"></i> Start vaping</div> -->
+                        @if(!empty($banner->url))
+                            <a href="{{ $banner->url }}">
+                                <img src="{{ url($banner->image) }}" class="d-block w-100" alt="...">
+                            </a>
+                        @else
+                            <img src="{{ url($banner->image) }}" class="d-block w-100" alt="...">
+                        @endif
+                    </div>
+                @endforeach
+            @else
+                <div class="bnslider-slide" data-autoplay="true" data-video-type="video">
+                    <div class="bnslider-image-mobile lazyload fade-up-fast"data-sizes="auto"></div>
+                    <div class="bnslider-image lazyload fade-up-fast" data-sizes="auto"></div>
+                    <img src="{{ url('frontend/images/landing-page_01.png') }}" class="d-block w-100" alt="...">
+                </div>
+            @endif   
+
+        </div>
+        <div class="bnslider-loader"></div>
+        <div class="bnslider-arrows container-fluid">
+            <div></div>
+        </div>
+        <div class="bnslider-dots d-sm-block container-fluid"></div>
+    </div>
+</div>
+
+<div id="categories-div-show">
+    <div class="category-div-line"></div>
+
+    <div class="holder holder-mt-xsmall" style="margin-top: 50px;">
+        <div class="pc-container" style="max-width: 1800px !important;">
+            <div class="section-title -center">
+                <span class="product-categories-title">{{ isset($data['lang']['lang']['products_of_categories']) ? $data['lang']['lang']['products_of_categories'] :'Products Of Categories' }}</span>
+                <span class="product-categories-subtitle">{{ isset($data['lang']['lang']['passages_of_products_available']) ? $data['lang']['lang']['passages_of_products_available'] :'There are many variations of passages of products available.' }}</span>
+            </div>
+
+            <div class="row product-categories-boxes">
+                @foreach($categories_home as $index => $category)
+                    <div class="col-6 col-md-6 col-lg-6 my-1">
+                        {{-- <a href="{{ route('listing', 'category='.urlencode($category->category_name)) }}" class="bnr-wrap"> --}}
+                        <a href="{{ route('Subcategory', 'category='.urlencode($category->category_name)) }}" class="bnr-wrap">
+                            <div class="bnr custom-caption image-product-hover bnr--bottom bnr--center" data-fontratio=5.7>
+                                <div class="bnr-img">
+                                    <button class="btn-view-category">
+                                        {{-- <img src="{{ !empty($category->image) ? url($category->image) : url('frontend/assets/images/category/CategoryOne/1.png') }}" alt="category image" class="lazyload fade-up" style="object-fit: contain; max-width: 100%; max-height: 100%;"> --}}
+                                        <img src="{{ !empty($category->image) ? url($category->image) : url('frontend/assets/images/category/CategoryOne/1.png') }}" alt="category image" class="lazyload fade-up" style="width: 100%; height: 100%;">
+                                        <span class="categories-name" style="position: absolute;">
+                                            {{ $category->category_name }}
+                                            <br/>
+                                            
+                                            <p class="categories-learn-more">&nbsp;{{ isset($data['lang']['lang']['learn_more']) ? $data['lang']['lang']['learn_more'] :'Learn More' }} &#8674;</p>
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</div>
+
+@if(!empty($current_active_flash_sales->id))
+    <section class="featured spad mt-3">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="section-title -center" style="margin-bottom: 1.875em">
+                        <h2>{{ isset($data['lang']['lang']['flash_sale']) ? $data['lang']['lang']['flash_sale'] : '限时抢购' }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="section-countdown -center" style="margin-bottom: 1.875em">
+                        <!-- <div id="countdown">
+                            <span id="days">
+
+                            </span>
+                            <span id="hours">
+
+                            </span>
+                            <span id="minutes">
+
+                            </span>
+                            <span id="seconds">
+
+                            </span>
+                        </div> -->
+                        <div class="countdown">
+                          <div class="countdown-item">
+                            <div class="countdown-value" id="days"></div>
+                            <div class="countdown-label">{{ isset($data['lang']['lang']['days']) ? $data['lang']['lang']['days'] : 'Days' }}</div>
+                          </div>
+                          <div class="countdown-item">
+                            <div class="countdown-value" id="hours"></div>
+                            <div class="countdown-label">{{ isset($data['lang']['lang']['hours']) ? $data['lang']['lang']['hours'] : 'Hours' }}</div>
+                          </div>
+                          <div class="countdown-item">
+                            <div class="countdown-value" id="minutes"></div>
+                            <div class="countdown-label">{{ isset($data['lang']['lang']['minutes']) ? $data['lang']['lang']['minutes'] : 'Minutes' }}</div>
+                          </div>
+                          <div class="countdown-item">
+                            <div class="countdown-value" id="seconds"></div>
+                            <div class="countdown-label">{{ isset($data['lang']['lang']['seconds']) ? $data['lang']['lang']['seconds'] : 'Seconds' }}</div>
+                          </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row featured__filter">
+                @foreach($current_active_flash_sales->get_flash_product_details as $flash_product)
+                    <div class="col-lg-2 col-md-4 col-6 mix {{ preg_replace('/[^A-Za-z0-9\-]/', '', $flash_product->category_name) }} small-gap">
+                        <a href="{{ route('details', md5($flash_product->get_product_detail->id)) }}">
+                            <div class="featured__item">
+                                @php
+                                    if(!empty($flash_product->get_product_detail->first_image->image)){
+                                        $bg_img = url($flash_product->get_product_detail->first_image->image);
+                                    }else{
+                                        $bg_img = 'images/no-image-available-icon-61.jpg';
+                                    }
+                                @endphp
+                                <div class="featured__item__pic product__discount__item__pic set-bg" style="background-image: url('{{ $bg_img }}'); height: 100px; background-position: center center; position: relative; overflow: hidden; background-repeat: no-repeat; background-size: cover; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+                                <!-- <div class="featured__item__pic product__discount__item__pic set-bg" data-setbg="{{ $bg_img }}">-->
+                                    <!-- @if(!empty($discount_percentage))
+                                    <div class="product__discount__percent">
+                                        -{{ number_format($discount_percentage) }}%
+                                    </div>
+                                    @endif -->
+                                </div>
+                                <div class="product__discount__item__text" style="text-align: center;
+                                                                                  padding-top: 20px;">
+                                    <!-- <small>
+                                        @if(isset($_COOKIE['global_language']) && !empty($_COOKIE['global_language']))
+                                            @if($_COOKIE['global_language'] == '1')
+                                                @if(!empty($flash_product->get_product_detail->one_product_category->category_name_cn))
+                                                    {{ $flash_product->get_product_detail->one_product_category->category_name_cn }}
+                                                @else
+                                                    {{ $flash_product->get_product_detail->one_product_category->category_name }}
+                                                @endif
+                                            @else
+                                                {{ $flash_product->get_product_detail->one_product_category->category_name }}
+                                            @endif
+                                        @else
+                                            {{ $flash_product->get_product_detail->one_product_category->category_name }}
+                                        @endif
+                                    </small> -->
+                                    <h6 style="height: 40px;">
+                                        <span class="one-liner">
+                                            @if(isset($_COOKIE['global_language']) && !empty($_COOKIE['global_language']))
+                                                @if($_COOKIE['global_language'] == '1')
+                                                    @if(!empty($flash_product->get_product_detail->product_name_cn))
+                                                        {{ $flash_product->get_product_detail->product_name_cn }}
+                                                    @else
+                                                        {{ $flash_product->get_product_detail->product_name }}
+                                                    @endif
+                                                @else
+                                                    {{ $flash_product->get_product_detail->product_name }}
+                                                @endif
+                                            @else
+                                                {{ $flash_product->get_product_detail->product_name_cn }}
+                                            @endif
+                                        </span>
+                                    </h6>
+                                    <!-- @if(!empty($flash_product->variation_id))
+                                    <h6 style="height: 40px;">
+                                        {{ $flash_product->get_variation->variation_name }}
+                                    </h6>
+                                    @endif
+                                    @if(!empty($flash_product->second_variation_id))
+                                    <h6 style="height: 40px;">
+                                      {{ $flash_product->get_second_variation->variation_name }}
+                                    </h6>
+                                    @endif -->
+                                    <h5 style="height: 40px; color:">
+                                        <div class="product__item__price text-red">
+                                            RM {{ number_format($flash_sale_price[$flash_product->id], 2) }}
+                                        </div>
+                                        <div class="product__item__price text-grey" style="font-size: 13px;">
+                                            <del>RM {{ number_format($original_price[$flash_product->id], 2) }}</del>
+                                        </div>
+                                    </h5>
+                                    <span style="font-family: 'Cairo', 'sans-serif' !important; padding-bottom: 0.5em;">
+                                        {{ $sold_amount[$flash_product->product_id] }} {{ isset($data['lang']['lang']['sold']) ? $data['lang']['lang']['sold'] :'sold'}}
+                                    </span>
+                                </div>
+                            </div>                        
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </section>
+@endif
+
+<div class="modal fade birthday_popup" id="birthday_popup" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="justify-content: center;">
+        <div class="modal-content" style="background-color: #fff;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h4><b>{{ isset($data['lang']['lang']['birthday_popup']) ? $data['lang']['lang']['birthday_popup'] : 'Birthday Popup'}}</b></h4>
+                </div>
+                <a href="#" class="close-modal">
+                    x
+                </a>
+            </div>
+            <div class="modal-body">
+                <div class="form-group"> 
+                    {!! $setting->birthday_popup !!}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ isset($data['lang']['lang']['close']) ? $data['lang']['lang']['close'] : 'Close'}}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<br>
+<br>
+<!--@if(!$active_promotions->isEmpty())
+    <section class="promotions mt-3">
+        <div class="container">
+            <div class="row">
+                <div class="section-title" style="width: 100%;" align="center">
+                    <h2>{{ isset($data['lang']['lang']['promotions']) ? $data['lang']['lang']['promotions'] :'Promotions'}}</h2>
+                </div>
+                <div class="promotions__slider owl-carousel">
+                    @foreach($active_promotions as $promotion)
+                    <div class="promotions__item set-bg" data-setbg="{{ (!empty($promotion->image)) ? url($promotion->image)  : 'images/no-image-available-icon-61.jpg' }}" style="border-radius: 10%; margin-left: 15px; margin-right: 15px;">
+                         <h5><a href="{{ route('listing', 'category='.urlencode($category->category_name)) }}">
+                            @if(isset($_COOKIE['global_language']) && !empty($_COOKIE['global_language']))
+                                @if($_COOKIE['global_language'] == '1')
+                                    @if(!empty($category->category_name_cn))
+                                        {{ $category->category_name_cn }}
+                                    @else
+                                        {{ $category->category_name }}
+                                    @endif
+                                @else
+                                    {{ $category->category_name }}
+                                @endif
+                            @else
+                                {{ $category->category_name }}
+                            @endif
+                            </a>
+                        </h5> 
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </section>
+@endif-->
+@if(!$products_featured->isEmpty())
+<div class="product-tab -style-1">
+    <div class="container">
+        <div class="section-title -center" style="margin-bottom: 1.875em">
+            <h2 id="best-seller">{{ isset($data['lang']['lang']['home_best_seller']) ? $data['lang']['lang']['home_best_seller'] :'畅销' }}</h2>
+        </div>
+        <div class="product-tab__content">
+            <div class="product-tab__content__wrapper">
+                <div class="row mx-n1 mx-lg-n3 justify-content-center">
+                    @foreach($products_featured as $featured)
+                        <div class="col-lg-3 col-6 px-1 my-3">
+                            <div class='container-box' style="font-size: 13px; background-color: #f4ece6; padding: 0px;" align="center">
+                                <a href="{{ route('details', md5($featured->id)) }}">
+                                    <div class="product ">
+                                        <div class="product-type">
+                                            <!-- <h5 class="-new" style="background-color: #885552;">New</h5> -->
+                                        </div>
+                                        <div class="product-thumb">
+                                            <div style="background-image: url({{ (!empty($featured->first_image->image)) ? url($featured->first_image->image) : url('images/800x800.png') }});
+                                                        background-repeat: no-repeat;
+                                                        background-size: 100%;
+                                                        background-position: center;
+                                                        height: 300px;" 
+                                                 class="listing-image"></div>
+                                            <!-- <img src="{{ (!empty($featured->first_image->image)) ? url($featured->first_image->image) : url('frontend/assets/images/product/1.png') }}" width="100%"> -->
+                                        </div>
+                                        <div class="product-content pb-4">
+                                            <div class="product-content__header" style="text-align: center; display: block;">
+                                                <div class="product-category">
+                                                    {{ !empty($featured->one_product_brand->brand_name) ? $featured->one_product_brand->brand_name : '' }} &nbsp;
+                                                </div>
+                                            </div>
+                                            <a class="product-name">
+                                                {{ $featured->product_name }}
+                                            </a>
+                                            <div class="product-content__footer" style="text-align: center; display: block;">
+                                                <h5 class="product-price--main" style="color: #885552;">
+                                                    @if(isset($get_pricing[$featured->id]))
+                                                    RM {!! $get_pricing[$featured->id]['product_price_range'] !!}
+                                                    @if(!empty($get_pricing[$featured->id]['product_special_range']))
+                                                    <br>
+                                                    <small>
+                                                        <del>
+                                                            RM {!! $get_pricing[$featured->id]['product_special_range'] !!}
+                                                        </del>
+                                                    </small>
+                                                    @endif
+                                                    @endif
+                                                </h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach          
+                </div>
+            </div>
+            <div class="text-center"><a class="btn -transparent -underline" href="{{ route('listing') }}">{{ isset($data['lang']['lang']['view_all_product']) ? $data['lang']['lang']['view_all_product'] :'View All Product' }}</a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+@if(!$vouchers->isEmpty())
+<div class="product-tab -style-1">
+    <div class="container">
+        <div class="section-title -center" style="margin-bottom: 1.875em">
+            <h2 id="best-seller">{{ isset($data['lang']['lang']['voucher']) ? $data['lang']['lang']['voucher'] :'优惠劵' }}</h2>
+        </div>
+        <div class="product-tab__content">
+            <div class="product-tab__content__wrapper">
+                <div class="row mx-n1 mx-lg-n3 justify-content-center">
+                    @foreach($vouchers as $voucher)
+                        @if($voucher->display_voucher == 1)
+                        @if($voucher->status == 1 && $voucher->end_date >= date('Y-m-d Y-m-d H:i:s'))
+                            <div class="col-lg-3 col-6 px-1 my-3">
+                                <div class='container-box' style="font-size: 13px; background-color: #f4ece6; padding: 0px;" align="center">
+                                    <a href="{{ route('my_voucher', [str_replace('/', '-', $voucher->promotion_title), md5($voucher->id)]) }}">
+                                        <div class="product ">
+                                            <div class="product-type">
+                                                <!-- <h5 class="-new" style="background-color: #885552;">New</h5> -->
+                                            </div>
+                                            <div class="product-thumb">
+                                                <div style="background-image: url({{ (!empty($voucher->image)) ? url($voucher->image) : url('images/800x800.png') }});
+                                                            background-repeat: no-repeat;
+                                                            background-size: 100%;
+                                                            background-position: center;
+                                                            height: 300px;" 
+                                                     class="listing-image"></div>
+                                                <!-- <img src="{{ (!empty($voucher->image)) ? url($voucher->image) : url('frontend/assets/images/product/1.png') }}" width="100%"> -->
+                                            </div>
+                                            <div class="product-content pb-4">
+                                                <a class="product-name">
+                                                    {{ $voucher->promotion_title }}
+                                                </a>
+                                                @if ($voucher->free_shipping == 1) 
+                                                    {{$voucher->discount = 'Free Shipping'}}
+                                                @elseif ($voucher->amount_type == 'Percentage') 
+                                                    {{$voucher->discount = $voucher->amount . '%'}}
+                                                @else 
+                                                    {{$voucher->discount = 'RM ' . $voucher->amount}}
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                            @endif
+                        @endif
+                    @endforeach          
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+@endif
+<!-- <div class=" web-size">
+    <div class="introduction-seven__wrapper -top">
+        <div class="introduction-seven__wrapper__content">
+            <div class="container">
+                <div class="row no-gutters">
+                    <div class="col-12 col-lg-9 col-xl-6">
+                        <div class="introduction-seven__wrapper__content__detail">
+                            <h3 style="margin-bottom: 10px;">{{ !empty($home_page[1]->title) ? $home_page[1]->title : 'LET’S ACHIEVE YOUR BEST SKIN' }}</h3>
+                            <p style="font-size: 18px;">{{ !empty($home_page[1]->description) ? $home_page[1]->description : 'Beautiful skin begins with exceptional skincare, and your exceptional journey starts with YGT.' }}</p>
+                            <h3 style="margin-bottom: 10px;">{{ !empty($home_page[2]->title) ? $home_page[2]->title : 'OUR PROMISE TO YOU' }}</h3>
+                            <p style="font-size: 18px;">{{ !empty($home_page[2]->description) ? $home_page[2]->description : 'We only use raw, highly concentrated ingredients to create product that are intentional and targeted to make you look and feel good.' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="introduction-seven__wrapper__image"><img src="{{ !empty($data['web_setting']->home_page_first_image) ? url($data['web_setting']->home_page_first_image) : url('about/d920a538-badc-4c41-88b9-06a17d968614.jfif') }}" alt="Section image"/></div>
+    </div>
+    <div class="introduction-seven__wrapper -bottom">
+        <div class="introduction-seven__wrapper__image"><img src="{{ !empty($data['web_setting']->home_page_second_image) ? url($data['web_setting']->home_page_second_image) : url('about/f2e168a9-f6bb-44af-89ea-5108eecc349f.jfif') }}" alt="Section image"/></div>
+        <div class="introduction-seven__wrapper__content">
+            <div class="container">
+                <div class="row no-gutters">
+                    <div class="col-12 col-lg-9 col-xl-6 ml-auto">
+                        <div class="introduction-seven__wrapper__content__detail">
+                            <h3 style="margin-bottom: 10px; color: #bf8a68;
+                                       font-size: 3.75em;
+                                       font-weight: 600;
+                                       line-height: 1;">
+                                {{ !empty($home_page[3]->title) ? $home_page[3]->title : 'A gentle care you can use for your face.' }}
+                            </h3>
+                            <p style="font-size: 18px;">
+                                {{ !empty($home_page[3]->description) ? $home_page[3]->description : 'The light texture and fast absorbing properties of serum make them ideal for layering underneath moisturizer, make up and
+                                other product.' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="introduction-eight py-5">
+    <div class="container">
+        <div class="row no-gutters align-items-center">
+            <div class="col-12 col-lg-4 order-lg-2">
+                <div class=""><img src="{{ !empty($data['web_setting']->homepage_image) ? url($data['web_setting']->homepage_image) : url('images/800x800.png') }}" width="100%" alt="Introduction image"/>
+                </div>
+            </div>
+            <div class="col-12 col-lg-8 order-lg-1 pr-3">
+                <div class="section-title " style="margin-bottom: 1.875em">
+                    <h2>
+                        Why Choose {{ $data['website_name'] }}
+                    </h2>
+                </div>
+                <div class="introduction-eight__content">
+                    <div class="row">
+                        <div class="col-12 col-md-6">
+                            <div class="introduction-eight__content__item">
+                                <div class="introduction-eight__content__item__image"><img src="{{ url('images/blood-cells1.png') }}" alt="No Synthetic Colors"/></div>
+                                <div class="introduction-eight__content__item__content">
+                                    <h3>{{ !empty($home_page[4]->title) ? $home_page[4]->title : 'Somethings' }}</h3>
+                                    <p style="font-size: 14px;">{{ !empty($home_page[4]->description) ? $home_page[4]->description : 'Something Descriptions' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="introduction-eight__content__item">
+                                <div class="introduction-eight__content__item__image"><img src="{{ url('images/formulaa.png') }}" alt="No Synthetic Frangences"/></div>
+                                <div class="introduction-eight__content__item__content">
+                                    <h3>{{ !empty($home_page[5]->title) ? $home_page[5]->title : 'Somethings' }}</h3>
+                                    <p style="font-size: 14px;">{{ !empty($home_page[5]->description) ? $home_page[5]->description : 'Something Descriptions' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="introduction-eight__content__item">
+                                <div class="introduction-eight__content__item__image"><img src="{{ url('homepage/4.png') }}" alt="100% Organic"/></div>
+                                <div class="introduction-eight__content__item__content">
+                                    <h3>{{ !empty($home_page[6]->title) ? $home_page[6]->title : 'Somethings' }}</h3>
+                                    <p style="font-size: 14px;">{{ !empty($home_page[6]->description) ? $home_page[6]->description : 'Something Descriptions' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="introduction-eight__content__item">
+                                <div class="introduction-eight__content__item__image"><img src="{{ url('images/5228063.png') }}" alt="No Animal Testing"/></div>
+                                <div class="introduction-eight__content__item__content">
+                                    <h3>{{ !empty($home_page[7]->title) ? $home_page[7]->title : 'Somethings' }}</h3>
+                                    <p style="font-size: 14px;">{{ !empty($home_page[7]->description) ? $home_page[7]->description : 'Something Descriptions' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> -->
+
+<div id="first-image-div-show">
+    <div class="welcome-main-margin">
+        <div class="row">
+            <div class="introduction-seven__wrapper -bottom">
+                <div class="introduction-seven-wrapper">
+                    <div class="introduction-seven-wrapper-image-fm">
+                        <img src="{{ !empty($data['web_setting']->home_page_first_image) ? url($data['web_setting']->home_page_first_image) : url('about/d920a538-badc-4c41-88b9-06a17d968614.jfif') }}" alt="Section image"/>
+                        {{-- <img src="{{ url($data['productionURL'].'/'.$product->details_page_first_image) }}" alt="First Image"/> --}}
+                    </div>
+                    <div class="introduction-seven__wrapper__content">
+                        {{-- <div class="container"> --}}
+
+                            <!-- 1 -->
+                            <div class="row no-gutters">
+                                <div class="col-12 col-md-12 col-lg-8 col-xl-6 ml-auto">
+                                    <div class="introduction-seven-wrapper-content-detail-fm welcome-padding-left">
+                                        <span class="welcome-title">{{ !empty($home_page[1]->title) ? $home_page[1]->title : '' }}</span>
+                    
+                                        <div class="welcome-border-red"></div>
+
+                                        <span class="introduction-seven__wrapper-description">{{ !empty($home_page[1]->description) ? $home_page[1]->description : '' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        {{-- </div> --}}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 2 -->
+        <div>
+            <div class="row welcome-margin">
+                <div class="col-12 col-md-12 col-lg-12 col-xl-12 mr-auto welcome-home-page">
+                    <span class="welcome-title">{{ !empty($home_page[2]->title) ? $home_page[2]->title : '' }}</span>
+                    <br/>
+                </div>
+            </div>
+                
+
+            <div class="row">
+                <div class="col-12 col-md-12 col-xl-12 welcome-home-page">
+                    <span class="introduction-seven__wrapper-description">{{ !empty($home_page[2]->description) ? $home_page[2]->description : '' }}</span>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 3 -->
+        <div class="row welcome-margin">
+            <div class="col-12 col-md-12 col-xl-12 welcome-home-page">
+                <span class="welcome-title">{{ !empty($home_page[3]->title) ? $home_page[3]->title : '' }}</span>
+                <br/>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12 col-md-12 col-xl-12 welcome-home-page">
+                <span class="introduction-seven__wrapper-description">{{ !empty($home_page[3]->description) ? $home_page[3]->description : '' }}</span>
+            </div>
+        </div>
+
+
+        <!-- 4 -->
+        <div class="row welcome-margin">
+            <div class="col-12 col-md-12 col-xl-12 welcome-home-page">
+                <span class="welcome-title">{{ !empty($home_page[4]->title) ? $home_page[4]->title : '' }}</span>
+                <br/>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12 col-md-12 col-xl-12 welcome-home-page">
+                <span class="introduction-seven__wrapper-description">{{ !empty($home_page[4]->description) ? $home_page[4]->description : '' }}</span>
+            </div>
+        </div>
+
+
+        <!-- 5 -->
+        <div class="row welcome-margin">
+            <div class="col-12 col-md-12 col-xl-12 welcome-home-page">
+                <span class="welcome-title">{{ !empty($home_page[5]->title) ? $home_page[5]->title : '' }}</span>
+                <br/>
+            </div>
+        </div>
+            
+
+        <div class="row">
+            <div class="col-12 col-md-12 col-xl-12 welcome-home-page">
+                <span class="introduction-seven__wrapper-description">{{ !empty($home_page[5]->description) ? $home_page[5]->description : '' }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="products-slider-div-show">
+    <div class="bnslider-wrapper lazyload fade-up">
+        <div class="bnslider keep-scale" data-start-width='2120' data-start-height='950' data-start-mwidth='170' data-start-mheight='70' id="bnslider-15930830211488359895" data-autoplay="true" data-speed="5000" style="background-image: url('images/R3uR6HGd4Nr3735H48F9R3u6jF.png');
+                                                                                                                                                                                                                            background-repeat: no-repeat;
+                                                                                                                                                                                                                            background-position: center;
+                                                                                                                                                                                                                            background-size: 100%;">
+            @if(!$products_home_page_slider->isEmpty()) 
+                @foreach($products_home_page_slider as $slider)  
+                    <div class="bnslider-slide" data-autoplay="true" data-video-type="video">
+                    {{-- <div class="bnslider-image-mobile lazyload"></div> --}}
+                    {{-- <div class="bnslider-image lazyload"></div> --}}
+                
+                        <div class="introduction-seven__wrapper -top padding-third-image">
+                            <div class="introduction-seven__wrapper__content products-slider-top">
+                                <div class="container padding-container" style="max-width: 1270px;">
+                                    <div class="row no-gutters">
+                                        <div class="col-12-first-image col-lg-first-image col-xl-6-first-image">
+                                            <div class="introduction-seven__wrapper__content__detail">
+                                                <div class="row txt-color title-first-image">
+                                                    <h3 class="title-first-image-h3">{{ !empty($slider->home_page_product_slider_title) ? $slider->home_page_product_slider_title : '' }}</h3>
+                                                </div>
+
+                                                <div class="row txt-color">
+                                                    <span class="description-first-image">{{ !empty($slider->home_page_product_slider_description) ? $slider->home_page_product_slider_description : '' }}</span>
+                                                </div>
+
+                                                <div class="row txt-color">
+                                                    <a href="{{ route('details', md5($slider->id)) }}">
+                                                        <button class="btn-hs-view-more">{{ isset($data['lang']['lang']['learn_more']) ? $data['lang']['lang']['learn_more'] :'Learn More' }} <span class="fas fa-arrow-right"></span></button>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="introduction-seven__wrapper__image"><img src="{{ (!empty($slider->home_page_product_slider_image)) ? url($slider->home_page_product_slider_image) : url('about/d920a538-badc-4c41-88b9-06a17d968614.jfif') }}" alt="Section image" class="slide-from-left" /></div>
+                        </div>
+                    </div>
+                @endforeach
+            @else
+                <div class="bnslider-slide" data-autoplay="true" data-video-type="video">
+                    <div class="bnslider-image-mobile lazyload" data-sizes="auto"></div>
+                    <div class="bnslider-image lazyload" data-sizes="auto"></div>
+                    <img src="{{ url('frontend/images/landing-page_01.png') }}" class="d-block w-100" alt="...">
+                </div>
+            @endif   
+
+        </div>
+        <div class="bnslider-loader"></div>
+        <div class="bnslider-arrows container-fluid">
+            <div></div>
+        </div>
+        <div class="bnslider-dots d-sm-block container-fluid"></div>
+    </div>
+</div>
+@endsection
+
+@section('js')
+<script src="{{ asset('new_layout/js/vendor-special/lazysizes.min.js') }}"></script>
+<script src="{{ asset('new_layout/js/vendor-special/ls.bgset.min.js') }}"></script>
+<script src="{{ asset('new_layout/js/vendor-special/ls.aspectratio.min.js') }}"></script>
+{{-- <script src="{{ asset('new_layout/js/vendor-special/jquery.min.js') }}"></script> --}}
+<script src="{{ asset('new_layout/js/vendor-special/jquery.ez-plus.js') }}"></script>
+<script src="{{ asset('new_layout/js/vendor-special/instafeed.min.js') }}"></script>
+<script src="{{ asset('new_layout/js/vendor/vendor.min.js') }}"></script>
+@if($birth_month_today)
+    <script>
+        $(document).ready(function() {
+            $('#birthday_popup').modal('show');
+        });
+    </script>
+@endif
+<script type="text/javascript">
+    // Slider- Add class.
+    const containerSlider = document.querySelector('.container-slider');
+    containerSlider.classList.add('show');
+    // --- END ---
+    $("#feedback-button").click(function(e) {
+        e.preventDefault();
+
+        $([document.documentElement, document.body]).animate({
+            scrollTop: $("#feedback-section").offset().top
+        }, 2000);
+    });
+
+    $('.add-favourite-btn').click( function(e){
+      e.preventDefault();
+      $('.loading-gif').show();
+      var ele = $(this);
+      var isAdmin = '{{ Auth::guard("admin")->check() }}';
+      var isMerchant = '{{ Auth::guard("merchant")->check() }}';
+      var isUser = '{{ Auth::check() }}';
+
+      if(isAdmin){
+        auth_check = isAdmin;
+      }else if(isMerchant){
+        auth_check = isMerchant;
+      }else if(isUser){
+        auth_check = isUser;
+      }else{
+        auth_check = "";
+      }
+      
+      if(auth_check){
+        var fd = new FormData();
+        fd.append('product_id', $(this).closest('.prd-circle-labels').find('.pid').val());
+
+        $.ajax({
+            url: '{{ route("Favourite") }}',
+            type: 'post',
+            data: fd,
+            contentType: false,
+            processData: false,
+            success: function(response){
+              $('.wishlist_count').html(response);
+              $('.loading-gif').hide();
+              if(response[0] == 1){
+                ele.html('<i class="fa fa-heart fa-2x" aria-hidden="true"></i>');
+
+              }else{
+                ele.html('<i class="fa fa-heart-o fa-2x" aria-hidden="true"></i>');
+              }
+            }
+        });
+      }else{
+        window.location.href = "{{ route('login') }}";
+      }
+  });
+
+  $(".promotions__slider").owlCarousel({
+        loop: true,
+        margin: 0,
+        items: 4,
+        dots: false,
+        nav: true,
+        navText: ["<span class='fa fa-angle-left'><span/>", "<span class='fa fa-angle-right'><span/>"],
+        // animateOut: 'fadeOut',
+        // animateIn: 'fadeIn',
+        smartSpeed: 1200,
+        autoHeight: false,
+        autoplay: false,
+        responsive: {
+
+            0: {
+                items: 1,
+            },
+
+            480: {
+                items: 2,
+            },
+
+            768: {
+                items: 3,
+            },
+
+            992: {
+                items: 4,
+            }
+        }
+    });
+
+</script>
+@if(!empty($current_active_flash_sales->id))
+<script type="text/javascript">
+    $(document).ready(function(){
+        // Set the date and time for the countdown (in this example, it's set to one hour from now)
+        var countDownDate = new Date('{{ $current_active_flash_sales->end }}').getTime();
+
+        // Update the countdown every second
+        var x = setInterval(function() {
+
+          // Get the current date and time
+          var now = new Date().getTime();
+
+          // Calculate the time remaining between now and the countdown date
+          var distance = countDownDate - now;
+
+          // Calculate the days, hours, minutes, and seconds remaining
+          var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+          // Display the countdown in the "countdown" div
+          // document.getElementById("countdown").innerHTML = days + "d " + hours + "h "
+          // + minutes + "m " + seconds + "s ";
+
+          // $('#countdown').find('#days').html(days + "d");
+          // $('#countdown').find('#hours').html(hours + "h");
+          // $('#countdown').find('#minutes').html(minutes + "m");
+          // $('#countdown').find('#seconds').html(seconds + "s");
+
+          $('.countdown').find('#days').html(days);
+          $('.countdown').find('#hours').html(hours);
+          $('.countdown').find('#minutes').html(minutes);
+          $('.countdown').find('#seconds').html(seconds);
+
+          // If the countdown is finished, display a message
+          if (distance < 0) {
+            clearInterval(x);
+            // document.getElementById("countdown").innerHTML = "EXPIRED";
+            $('#countdown').html('EXPIRED');
+          }
+        }, 1000);
+    });
+</script>
+@endif
+
+
+
+{{-- Categories--}}
+<script>
+    let hasBeenShown_categories = false;
+
+    function show_categories(element) {
+        element.style.opacity = 1;
+    }
+
+    function showCategoriesAfterDelay() {
+        if (!hasBeenShown_categories) {
+            const categoriesDiv = document.getElementById('categories-div-show');
+            show_categories(categoriesDiv);
+            hasBeenShown_categories = true;
+        }
+    }
+
+    setTimeout(showCategoriesAfterDelay, 1000);
+
+    function scroll_categories() {
+        const scrollPosition = window.scrollY;
+        const categoriesDiv = document.getElementById('categories-div-show');
+
+        const elementTopOffset = categoriesDiv.getBoundingClientRect().top;
+        const windowHeight = window.innerHeight;
+
+        if (elementTopOffset <= windowHeight && !hasBeenShown_categories) {
+            setTimeout(function() {
+                show_categories(categoriesDiv);
+                hasBeenShown_categories = true;
+            }, 1000);
+        }
+    }
+
+    window.addEventListener("scroll", scroll_categories);
+    window.addEventListener("touchmove", scroll_categories);
+</script>
+
+
+{{-- Home Page First Image--}}
+<script>
+    let hasBeenShown_first_image = false;
+
+    function show_first_image(element) {
+        element.style.opacity = 1;
+    }
+
+    function scroll_first_image() {
+        const scrollPosition = window.scrollY;
+        const firstImageDiv = document.getElementById('first-image-div-show');
+
+        const elementTopOffset = firstImageDiv.getBoundingClientRect().top;
+        const windowHeight = window.innerHeight;
+
+        if (elementTopOffset <= windowHeight && !hasBeenShown_first_image) {
+            show_first_image(firstImageDiv);
+            hasBeenShown_first_image = true;
+        }
+    }
+
+    window.addEventListener("scroll", scroll_first_image);
+    window.addEventListener("touchmove", scroll_first_image);
+</script>
+
+
+{{-- Products slider--}}
+<script>
+    let hasBeenShown_product_slider = false;
+
+    function show_product_slider(element) {
+        element.style.opacity = 1;
+    }
+
+    function scroll_product_slider() {
+        const scrollPosition = window.scrollY;
+        const productSliderDiv = document.getElementById('products-slider-div-show');
+
+        const elementTopOffset = productSliderDiv.getBoundingClientRect().top;
+        const windowHeight = window.innerHeight;
+
+        if (elementTopOffset <= windowHeight && !hasBeenShown_product_slider) {
+            show_product_slider(productSliderDiv);
+            hasBeenShown_product_slider = true;
+        }
+    }
+
+    window.addEventListener("scroll", scroll_product_slider);
+    window.addEventListener("touchmove", scroll_product_slider);
+</script>
+
+
+
+{{-- Award slider--}}
+<script>
+    let hasBeenShown_award = false;
+
+    function show_award(element) {
+        element.style.opacity = 1;
+    }
+
+    function scroll_award() {
+        const scrollPosition = window.scrollY;
+        const awardDiv = document.getElementById('award-div-show');
+
+        const elementTopOffset = awardDiv.getBoundingClientRect().top;
+        const windowHeight = window.innerHeight;
+
+        if (elementTopOffset <= windowHeight && !hasBeenShown_award) {
+            show_award(awardDiv);
+            hasBeenShown_award = true;
+        }
+    }
+
+    window.addEventListener("scroll", scroll_award);
+    window.addEventListener("touchmove", scroll_award);
+</script>
+
+
+{{-- Info- | Warrantly | Repair Center | Manuals | FAQs --}}
+<script>
+    let hasBeenShown_info_q = false;
+
+    function show_info_q(element) {
+        element.style.opacity = 1;
+    }
+
+    function scroll_info_q() {
+        const scrollPosition = window.scrollY;
+        const info_q_Div = document.getElementById('info-div-show');
+
+        const elementTopOffset = info_q_Div.getBoundingClientRect().top;
+        const windowHeight = window.innerHeight;
+
+        if (elementTopOffset <= windowHeight && !hasBeenShown_info_q) {
+            show_info_q(info_q_Div);
+            hasBeenShown_info_q = true;
+        }
+    }
+
+    window.addEventListener("scroll", scroll_info_q);
+    window.addEventListener("touchmove", scroll_info_q);
+</script>
+@endsection

@@ -1,0 +1,375 @@
+<!-- Humberger Begin -->
+@if(Request::segment(1) == 'ECommerce' || Request::segment(1) == 'Details' || Request::segment(1) == 'Cart' || Request::segment(1) == '' || Request::segment(1) == 'Checkout' || Request::segment(1) == 'login' || Request::segment(1) == 'About' || Request::segment(1) == 'Subcategory' || Request::segment(1) == 'Contact' || Request::segment(1) == 'register' || Request::segment(1) == 'merchant_register' || Request::segment(1) == 'faqs' || Request::segment(1) == 'verify_success' || Request::segment(1) == 'Blog' || 
+Request::segment(1) == 'BlogDetail' || Request::segment(1) == 'TnC' || Request::segment(1) == 'ReturnPolicy' ||
+Request::segment(1) == 'PrivacyPolicy' || Request::segment(1) == 'company_register' || Request::segment(1) == 'Material' ||
+Request::segment(1) == 'PointMall' ||
+Request::segment(1) == 'MallDetails' ||
+Request::segment(1) == 'CheckoutMall' ||
+Request::segment(1) == 'Terms' ||
+Request::segment(1) == 'ShippingPolicy' ||
+Request::segment(1) == 'OurStory' ||
+Request::segment(1) == 'JoinUs' ||
+Request::segment(1) == 'Commitments' ||
+Request::segment(1) == 'OurStoryThinking' ||
+Request::segment(1) == 'OurStoryMain' ||
+Request::segment(1) == 'Award' ||
+Request::segment(1) == 'Feedback' ||
+Request::segment(1) == 'OurLatest' ||
+Request::segment(1) == 'OurLatestDetail' ||
+Request::segment(1) == 'Promotion_Listing' ||
+Request::segment(1) == 'Promotion_Details')
+
+<div class="header -two">
+    <div class="hdr-topline js-hdr-top" style="background: linear-gradient(to bottom, #830304, #680303);">
+        <div class="container">
+          <div class="row flex-nowrap">
+            <div class="col hdr-topline-center">
+              <div class="custom-text js-custom-text-carousel" data-slick='{"speed": 1000, "autoplaySpeed": 3000}'>
+                <!-- <div class="custom-text-item"><i class="icon-fox"></i> Use promocode <span>FOXIC</span> to get 15% discount!</div>
+                <div class="custom-text-item"><i class="icon-air-freight"></i> <span>Free</span> plane shipping over <span>$250</span></div>
+                <div class="custom-text-item"><i class="icon-gift"></i> Today only! Post <span>holiday</span> Flash Sale! 2 for $20</div> -->
+                @foreach($data['website_messages'] as $message)
+                  <div class="custom-text-item" style="color: #fff; font-family: sans-serif;">{{ $message->message }}</div>
+                @endforeach
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div class="menu -style-2" style="background: #fff; box-shadow: 0 0 10px 0 #cdc7c2;">
+        <div class="container">
+            <div class="menu__wrapper">
+                <div class="navigator" style="font-family: ui-sans-serif;">
+                    <ul class="navigator_part -left">
+                        <a class="menu__wrapper__logo" href="{{ route('home') }}">
+                            <!-- <img src="{{ asset('frontend/assets/images/logo.png') }}" alt="Logo"/> -->
+                            @if(!empty($data['website_logo']))
+                            <!-- <img src="{{ url($data['website_logo']) }}" alt="italiano" width="210"> -->
+                            <div style="background-image: url({{ url($data['website_logo']) }});
+                                        background-size: contain;
+                                        background-repeat: no-repeat;
+                                        background-position: center;
+                                        width: 200px;
+                                        height: 3em !important;" class="header__website__logo"></div>
+                            @endif
+                        </a>
+                    </ul>
+                    
+                    <ul class="navigator_part -right">
+                        <li>
+                            <a href="{{ route('home') }}">
+                                {{ isset($data['lang']['lang']['home']) ? $data['lang']['lang']['home'] :'首页' }}
+                            </a>
+                        </li>
+                        
+                        <li>
+                            <a href="{{ route('about') }}">
+                                {{ isset($data['lang']['lang']['about']) ? $data['lang']['lang']['about'] :'关于我们' }}
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="{{ route('listing') }}" class="products-tab">
+                                {{ isset($data['lang']['lang']['products']) ? $data['lang']['lang']['products'] :'产品' }}
+                            </a>
+                        </li>
+
+                        {{-- <li>
+                            <a href="{{ route('PointMall') }}">
+                                {{ isset($data['lang']['lang']['point_mall']) ? $data['lang']['lang']['point_mall'] :'点数商城' }}
+                            </a>
+                        </li> --}}
+
+                        <li>
+                            <a href="{{ route('Contact') }}">
+                                {{ isset($data['lang']['lang']['contact_us']) ? $data['lang']['lang']['contact_us'] :'联系我们' }}
+                            </a>
+                        </li>
+                        {{-- <li>
+                            <a href="{{ route('faqs') }}">
+                                {{ isset($data['lang']['lang']['faqs']) ? $data['lang']['lang']['faqs'] :'商店' }}
+                            </a>
+                        </li> --}}
+                    </ul>
+                </div>
+
+                <div class="menu-functions">
+                    <a class="menu-icon -search -mobile" href="#">
+                        <img src="{{ url('frontend/assets/images/header/search-icon.png') }}" alt="Search icon"/>
+                    </a>
+                    <div class="search-box">
+                        <form method="GET" action="{{ route('listing') }}">
+                            <input type="text" placeholder="What are you looking for?" name="result"/>
+                            <button><img src="{{ url('frontend/assets/images/header/search-icon.png') }}" alt="Search icon"/></button>
+                        </form>
+                    </div>
+
+                    <div class="menu-functions ">
+                        <a class="menu-icon -search" href="#">
+                            <img src="{{ url('frontend/assets/images/header/search-icon.png') }}" alt="Search icon"/>
+                        </a>
+                        <div class="search-box">
+                            <form method="GET" action="{{ route('listing') }}">
+                                <input type="text" placeholder="What are you looking for?" name="result"/>
+                                <button><img src="{{ url('frontend/assets/images/header/search-icon.png') }}" alt="Search icon"/></button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {{-- 
+                    <div class="menu-cart">
+                        <a class="menu-icon -cart top-cart-btn" href="{{ route('checkout') }}">
+                            <img src="{{ asset('images/154fdf2f2759676a96e9aed653082276.png') }}" alt="Cart icon"/ width="33px">
+                            <span class="cart__quantity badge badge-pill badge-danger" style="top: -5px;">
+                                {{ !empty($data['totalCart']) ? $data['totalCart'] : 0 }}
+                            </span>
+                        </a>
+                    </div>
+                    <div class="menu-cart">
+                        <a class="menu-icon -cart top-cart-mall-btn" href="{{ route('checkout_mall') }}">
+                            <img src="{{ asset('frontend/assets/images/header/cart-icon-white.png') }}" alt="Cart icon"/ width="25px">
+                            <span class="mall_cart__quantity badge badge-pill badge-danger">
+                                {{ !empty($data['totalCartMall']) ? $data['totalCartMall'] : 0 }}
+                            </span>
+                        </a>
+                    </div> --}}
+                    <div class="menu-cart" style="position: relative;">
+                        @if(Auth::guard('merchant')->check() || Auth::guard('web')->check() || Auth::guard('admin')->check())
+                            <a class="menu-icon -cart top-profile-btn" href="#">
+                                <!-- <img src="{{ asset('images/6519dEF9R6HGd4Nr3735H48F9REF9R3u6jF.png') }}" width="20px"> -->
+                                <i class="fa fa-flag" style="color: #000000; font-size: 23px;"></i>
+                            </a>
+                            <div style="position: absolute;
+                                        top: 35px;
+                                        right: 25px;
+                                        box-shadow: 0px 0px 6px 0 #ddd;
+                                        color: #fff;
+                                        font-size: 12px;
+                                        background-color: #fff;
+                                        z-index: 100;
+                                        width: 200px;
+                                        display: none;" class="right-top-items">
+                                {{-- <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    {{ Auth::guard($data['userGuardRole'])->user()->f_name }} - {{ Auth::guard($data['userGuardRole'])->user()->code }}
+                                </div> --}}
+                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    <select class="global_language" name="global_language" style="padding: 0.375rem 0.75rem; width: auto; -webkit-appearance: auto; z-index: 1000; border: none;" onchange="changeLanguage(value);">
+                                        <option>{{ isset($data['lang']['lang']['language']) ? $data['lang']['lang']['language'] :'语言'}}</option>
+                                        <option value="1">{{ isset($data['lang']['lang']['chinese']) ? $data['lang']['lang']['chinese'] :'中文'}}</option>
+                                        <option value="2">{{ isset($data['lang']['lang']['english']) ? $data['lang']['lang']['english'] :'英文'}}</option>
+                                    </select>
+                                </div>
+                                {{-- <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    <a href="{{ route('profile') }}">
+                                        {{ isset($data['lang']['lang']['my_accounts']) ? $data['lang']['lang']['my_accounts'] :'我的账户' }}
+                                    </a>
+                                </div>
+                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    <a href="#" onclick="event.preventDefault(); $('.loading-gif').show(); document.getElementById('logout-form').submit();">
+                                        {{ isset($data['lang']['lang']['logout']) ? $data['lang']['lang']['logout'] :'登出'}}
+                                    </a>
+                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                        @csrf
+                                    </form>
+                                </div> --}}
+                            </div>
+                        @else
+                            <a class="menu-icon -cart top-profile-btn" href="#">
+                                <!-- <img src="{{ asset('images/6519dEF9R6HGd4Nr3735H48F9REF9R3u6jF.png') }}" width="20px"> -->
+                                <i class="fa fa-flag" style="color: #000000; font-size: 23px;"></i>
+                            </a>
+                            <div style="position: absolute;
+                                        top: 35px;
+                                        right: 25px;
+                                        box-shadow: 0px 0px 6px 0 #ddd;
+                                        color: #fff;
+                                        font-size: 12px;
+                                        background-color: #fff;
+                                        z-index: 100;
+                                        width: 200px;
+                                        display: none;" class="right-top-items">
+                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    <select class="global_language" name="global_language" style="padding: 0.375rem 0.75rem; width: auto; -webkit-appearance: auto; z-index: 1000; border: none;" onchange="changeLanguage(value);">
+                                        <option>{{ isset($data['lang']['lang']['language']) ? $data['lang']['lang']['language'] :'语言'}}</option>
+                                        <option value="1">{{ isset($data['lang']['lang']['chinese']) ? $data['lang']['lang']['chinese'] :'中文'}}</option>
+                                        <option value="2">{{ isset($data['lang']['lang']['english']) ? $data['lang']['lang']['english'] :'英文'}}</option>
+                                    </select>
+                                </div>
+                                {{-- <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    <a href="{{ route('profile') }}">
+                                        {{ isset($data['lang']['lang']['login']) ? $data['lang']['lang']['login'] :'登入' }}
+                                    </a>
+                                </div>
+                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    <a href="{{ route('register') }}">
+                                        {{ isset($data['lang']['lang']['register']) ? $data['lang']['lang']['register'] :'注册' }}
+                                    </a>
+                                </div>
+                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
+                                    <a href="{{ route('merchant_register') }}">
+                                        {{ isset($data['lang']['lang']['register_agent']) ? $data['lang']['lang']['register_agent'] :'注册代理' }}
+                                    </a>
+                                </div> --}}
+                            </div>
+                        @endif
+                    </div>
+                    <a class="menu-icon -navbar" href="#">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>  
+
+    <!-- Products -->
+    @if(!$data['categories_home']->isEmpty())
+    <div class="-style-2 menu-split-div" style="font-size: 30px; background: linear-gradient(to bottom, #ffffff, #ffffff); box-shadow: 0 0 10px 0 #000000;">
+        <div class="container pc-container" style="max-width: 1370px;">
+            <div class="row">
+                @php 
+                    $counter = 0; 
+                @endphp 
+                @foreach($data['categories_home'] as $index => $category)
+                    @if($counter < 6)
+                        <div class="col-xs-12 col-lg-2 my-10 no-padding">
+                            <a href="{{ route('Subcategory', 'category='.urlencode($category->category_name)) }}">
+                                <div class="product">
+                                    <div class="product-thumb">
+                                        <div class="split-products-name">
+                                            {{ $category->category_name }}
+                                        </div>
+                                        
+                                        <div class="split-products-border"></div>
+
+                                        <div style="padding: 10px;">
+                                            <div style="background-image: url({{ (!empty($category->image)) ? url($category->image) : url('images/800x800.png') }});
+                                                        background-repeat: no-repeat;
+                                                        background-size: 100%;
+                                                        background-position: center;
+                                                        height: 200px;" 
+                                                    class="listing-image listing-image-hvr">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        @php
+                            $counter++; 
+                        @endphp
+                    @endif       
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
+</div>
+    
+<div class="drawer drawer-right slide" id="mobile-menu-drawer" tabindex="-1" role="dialog" aria-labelledby="drawer-demo-title" aria-hidden="true">
+    <div class="drawer-content drawer-content-scrollable" role="document">
+        <div class="drawer-body">
+        <div class="cart-sidebar">
+            <div class="cart-items__wrapper">
+            <div class="navigation-sidebar">
+                <div class="search-box">
+                <form method="get" action="{{ route('listing') }}">
+                    <input type="text" name="result" placeholder="What are you looking for?"/>
+                    <button><img src="{{ url('frontend/assets/images/header/search-icon.png') }}" alt="Search icon"/></button>
+                </form>
+                </div>
+                <div class="navigator-mobile">
+                <ul>
+                    <li class="relative">
+                    <a href="{{ route('home') }}">
+                        {{ isset($data['lang']['lang']['main']) ? $data['lang']['lang']['main'] :'首页' }}
+                    </a>
+                    </li>
+
+                    <li>
+                    <a href="{{ route('listing') }}">
+                        {{ isset($data['lang']['lang']['products']) ? $data['lang']['lang']['products'] :'产品' }}
+                    </a>
+                    </li>
+                    
+                    {{-- <li>
+                        <a href="{{ route('PointMall') }}">
+                            {{ isset($data['lang']['lang']['point_mall']) ? $data['lang']['lang']['point_mall'] :'点数商城' }}
+                        </a>
+                    </li> --}}
+       
+                    <li>
+                        <a href="{{ route('Contact') }}">
+                            {{ isset($data['lang']['lang']['contact_us']) ? $data['lang']['lang']['contact_us'] :'联系我们' }}
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('about') }}">
+                            {{ isset($data['lang']['lang']['about']) ? $data['lang']['lang']['about'] :'关于我们' }}
+                        </a>
+                    </li>
+                    
+                    <li><div class="divider-line" style="border-top: 2px solid #00000002; margin: 10px 0;"></div></li>
+                    
+                    <li><a href="{{ route('return_policy') }}">{{ isset($data['lang']['lang']['return_policy']) ? $data['lang']['lang']['return_policy'] :'退货/退款政策' }}</a></li>
+                    <li><a href="{{ route('privacy_policy') }}">{{ isset($data['lang']['lang']['privacy_policy']) ? $data['lang']['lang']['privacy_policy'] :'隐私政策' }}</a></li>
+                    <li><a href="{{ route('tnc') }}">{{ isset($data['lang']['lang']['term_condition']) ? $data['lang']['lang']['term_condition'] :'规则与条例' }}</a></li>
+                </ul>
+                </div>
+
+                <div class="social-icons ">
+                    <ul>
+                        @if(!empty($data['web_setting']->facebook))
+                        <li>
+                            <a href="{{ $data['web_setting']->facebook }}" style="'color: undefined'" target="_blank">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                        </li>
+                        @endif
+                        @if(!empty($data['web_setting']->twitter))
+                        <li>
+                            <a href="{{ $data['web_setting']->twitter }}" style="'color: undefined'" target="_blank">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                        </li>
+                        @endif
+                        @if(!empty($data['web_setting']->instagram))
+                        <li>
+                            <a href="{{ $data['web_setting']->instagram }}" style="'color: undefined'" target="_blank">
+                                <i class="fab fa-instagram"> </i>
+                            </a>
+                        </li>
+                        @endif
+                        @if(!empty($data['web_setting']->linkedin))
+                        <li>
+                            <a href="{{ $data['web_setting']->linkedin }}" style="'color: undefined'" target="_blank">
+                                <i class="fab fa-linkedin"> </i>
+                            </a>
+                        </li>
+                        @endif
+                        @if(!empty($data['web_setting']->pinterest))
+                        <li>
+                            <a href="{{ $data['web_setting']->pinterest }}" style="'color: undefined'" target="_blank">
+                                <i class="fab fa-pinterest"> </i>
+                            </a>
+                        </li>
+                        @endif
+                        @if(!empty($data['web_setting']->youtube))
+                        <li>
+                            <a href="{{ $data['web_setting']->youtube }}" style="'color: undefined'" target="_blank">
+                                <i class="fab fa-youtube"></i>
+                            </a>
+                        </li> 
+                        @endif
+                    </ul>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+@endif
