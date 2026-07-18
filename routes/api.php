@@ -47,5 +47,6 @@ Route::middleware('print.agent.token')->prefix('print-agent')->group(function ()
     Route::get('/queue', 'API\PrintAgentController@queue')->name('print_agent.queue');
     Route::get('/pdf/{transactionId}/{documentType}', 'API\PrintAgentController@pdf')->name('print_agent.pdf');
     Route::post('/ack/{transactionId}/{documentType}', 'API\PrintAgentController@ack')->name('print_agent.ack');
+    Route::post('/skip-existing', 'API\PrintAgentController@skipExisting')->name('print_agent.skip_existing');
 });
 

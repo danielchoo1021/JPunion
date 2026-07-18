@@ -24,6 +24,37 @@ class PrintAgentController extends Controller
 
     public function queue(OrderPrintService $printService)
     {
+        return response()->json(['jobs' => $this->pendingJobs($printService)]);
+    }
+
+    /**
+     * Bulk-marks everything currently pending as printed, without actually
+     * printing it - for onboarding a site that already has paid orders
+     * before the print agent existed (or was ever pointed at it), so the
+     * agent doesn't try to reprint a backlog of old orders. One request,
+     * done entirely server-side, so it doesn't trip the api group's
+     * throttle:60,1 the way looping ack() calls from the agent side would.
+     */
+    public function skipExisting(Request $request, OrderPrintService $printService)
+    {
+        $jobs = $this->pendingJobs($printService);
+
+        foreach ($jobs as $job) {
+            $printService->logPrintResult(
+                Transaction::find($job['transaction_id']),
+                $job['document_type'],
+                'backfill-skip',
+                $job['attempt'],
+                'success',
+                'Skipped: marked as already printed during print-agent onboarding backfill.'
+            );
+        }
+
+        return response()->json(['skipped' => count($jobs)]);
+    }
+
+    protected function pendingJobs(OrderPrintService $printService): array
+    {
         $transactions = Transaction::where('status', 1)
             ->orderBy('id')
             ->get();
@@ -46,7 +77,7 @@ class PrintAgentController extends Controller
             }
         }
 
-        return response()->json(['jobs' => $jobs]);
+        return $jobs;
     }
 
     public function pdf(Request $request, $transactionId, string $documentType, OrderPrintService $printService)
