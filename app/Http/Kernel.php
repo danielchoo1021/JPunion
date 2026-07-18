@@ -62,6 +62,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'active.account' => \App\Http\Middleware\EnsureAccountIsActive::class,
+        'print.agent.token' => \App\Http\Middleware\VerifyPrintAgentToken::class,
     ];
 
     /**

@@ -40,4 +40,12 @@ Route::post('/v1/transaction/updateStatus', 'APIController@updateTransactionStat
 
 Route::post('/v1/transactions/get', 'APIController@getTransactionListing')->name('get_transaction_listing');
 Route::post('/v1/transaction/package/get/{transaction_no}', 'APIController@getTransactionPackage')->name('get_transaction_package');
-    
+
+// Polled by the local print agent (php artisan print:agent) running on the
+// machine with the printers attached - see config/printing.php 'mode'.
+Route::middleware('print.agent.token')->prefix('print-agent')->group(function () {
+    Route::get('/queue', 'API\PrintAgentController@queue')->name('print_agent.queue');
+    Route::get('/pdf/{transactionId}/{documentType}', 'API\PrintAgentController@pdf')->name('print_agent.pdf');
+    Route::post('/ack/{transactionId}/{documentType}', 'API\PrintAgentController@ack')->name('print_agent.ack');
+});
+

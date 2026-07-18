@@ -69,6 +69,7 @@ use App\SettingFeedbackDetail;
 use App\SettingFeedback;
 use App\SettingUom;
 use App\TransactionPackage;
+use App\TransactionPrintLog;
 use App\JoiningRecord;
 use App\SettingRetailCommission;
 use App\PromoAgentItem;
@@ -1378,7 +1379,16 @@ class AjaxController extends Controller
     }
 
     try {
-      (new OrderPrintService())->printOrder($transaction);
+      if (config('printing.mode') === 'queue') {
+        // Nothing to shell out to on this machine. Clear any prior
+        // "success" logs so the transaction reappears in the local print
+        // agent's queue and gets printed again on its next poll.
+        TransactionPrintLog::where('transaction_id', $transaction->id)
+          ->where('status', 'success')
+          ->delete();
+      } else {
+        (new OrderPrintService())->printOrder($transaction);
+      }
     } catch (\Exception $e) {
       return $e->getMessage();
     }

@@ -27,16 +27,44 @@ class OrderPrintService
             return;
         }
 
-        $details = TransactionDetail::where('transaction_id', $transaction->id)->get();
+        // 'queue' mode means this machine (e.g. shared hosting) has no
+        // printers attached - there's nothing to shell out to here. The
+        // local print agent (see PrintAgentRun / PrintAgentController)
+        // discovers this transaction on its own by polling for paid orders
+        // that don't have a successful print log yet, so no action is
+        // needed on this side.
+        if (config('printing.mode') === 'queue') {
+            return;
+        }
 
         $jobs = [
-            $this->startPrintJob($transaction, 'invoice_a4', config('printing.invoice_printer'), $this->buildInvoicePdf($transaction)),
-            $this->startPrintJob($transaction, 'packing_label', config('printing.label_printer'), $this->buildPackingSlipPdf($transaction, $details)),
+            $this->startPrintJob($transaction, 'invoice_a4', config('printing.invoice_printer'), $this->renderDocument($transaction, 'invoice_a4')),
+            $this->startPrintJob($transaction, 'packing_label', config('printing.label_printer'), $this->renderDocument($transaction, 'packing_label')),
         ];
 
         foreach ($jobs as $job) {
             $this->finishPrintJob($job);
         }
+    }
+
+    /**
+     * Renders one of the two auto-print documents for a transaction. Shared
+     * by the local direct-print path above and by PrintAgentController,
+     * which renders the same PDF on demand for the remote polling agent to
+     * download and print.
+     */
+    public function renderDocument(Transaction $transaction, string $documentType)
+    {
+        if ($documentType === 'invoice_a4') {
+            return $this->buildInvoicePdf($transaction);
+        }
+
+        if ($documentType === 'packing_label') {
+            $details = TransactionDetail::where('transaction_id', $transaction->id)->get();
+            return $this->buildPackingSlipPdf($transaction, $details);
+        }
+
+        throw new \InvalidArgumentException("Unknown print document type: {$documentType}");
     }
 
     /**
@@ -165,9 +193,7 @@ class OrderPrintService
      */
     protected function startPrintJob(Transaction $transaction, string $documentType, string $printerName, $pdf)
     {
-        $attempt = TransactionPrintLog::where('transaction_id', $transaction->id)
-            ->where('document_type', $documentType)
-            ->count() + 1;
+        $attempt = $this->nextAttemptNumber($transaction, $documentType);
 
         $job = [
             'transaction' => $transaction,
@@ -220,7 +246,11 @@ class OrderPrintService
         }
     }
 
-    protected function logPrintResult(Transaction $transaction, string $documentType, string $printerName, int $attempt, string $status, ?string $message)
+    /**
+     * Public so PrintAgentController can log the result of a print job that
+     * actually happened on the remote agent's machine, not this one.
+     */
+    public function logPrintResult(Transaction $transaction, string $documentType, string $printerName, int $attempt, string $status, ?string $message)
     {
         TransactionPrintLog::create([
             'transaction_id' => $transaction->id,
@@ -233,35 +263,42 @@ class OrderPrintService
         ]);
     }
 
-    protected function startSumatraProcess(string $pdfFilePath, string $printerName, string $documentType): Process
+    /**
+     * Public so both startPrintJob() (direct mode) and PrintAgentController
+     * (queue mode) compute the same "which attempt number is this" and
+     * "has this already succeeded / been retried too many times" logic.
+     */
+    public function nextAttemptNumber(Transaction $transaction, string $documentType): int
     {
-        $sumatra = config('printing.sumatra_path');
+        return TransactionPrintLog::where('transaction_id', $transaction->id)
+            ->where('document_type', $documentType)
+            ->count() + 1;
+    }
 
-        if (!file_exists($sumatra)) {
-            throw new \RuntimeException("SumatraPDF executable not found at {$sumatra}");
+    /**
+     * True if this document still needs to be (re)printed: no successful
+     * log yet, and we haven't exhausted the retry budget.
+     */
+    public function needsPrinting(Transaction $transaction, string $documentType): bool
+    {
+        $logs = TransactionPrintLog::where('transaction_id', $transaction->id)
+            ->where('document_type', $documentType)
+            ->get();
+
+        if ($logs->contains('status', 'success')) {
+            return false;
         }
 
-        // Without -print-settings, SumatraPDF may auto-fit/auto-rotate the
-        // page to the printer's currently selected form. The orientation
-        // passed here must match the PDF's own shape (landscape = wider
-        // than tall) or Sumatra will rotate the content to "fit" a mismatched
-        // orientation - that's what was causing the D520 label to print
-        // sideways. The A4 invoice is portrait-shaped so it still gets
-        // 'portrait'; only the (landscape) label needs 'landscape'.
-        $orientationFlag = ($documentType === 'packing_label') ? 'landscape' : 'portrait';
-        $process = new Process([$sumatra, '-print-to', $printerName, '-print-settings', "noscale,{$orientationFlag}", '-silent', $pdfFilePath]);
-        $process->setTimeout(60);
+        return $logs->count() < (int) config('printing.max_attempts', 5);
+    }
 
-        // Symfony Process normally captures stdout/stderr through pipes.
-        // SumatraPDF writes a stream of "ParseFlags" debug lines to stdout
-        // while it prints; piping that (instead of letting it go to a real
-        // console, as happens when run directly from a shell) was corrupting
-        // the print job partway through - the label would come out upside
-        // down and cut off mid-content. Disabling output capture avoids the
-        // pipe entirely and made the same job print correctly.
-        $process->disableOutput();
-        $process->start();
+    protected function startSumatraProcess(string $pdfFilePath, string $printerName, string $documentType): Process
+    {
+        // The A4 invoice is portrait-shaped; only the (landscape) label
+        // needs 'landscape' - see LocalPdfPrinter for why this must match
+        // the PDF's own shape.
+        $orientation = ($documentType === 'packing_label') ? 'landscape' : 'portrait';
 
-        return $process;
+        return (new LocalPdfPrinter())->print($pdfFilePath, $printerName, $orientation);
     }
 }
