@@ -11,10 +11,7 @@
 #
 # ============================== CONFIG ======================================
 $Token              = "o7JEzI8lOmuSAZqYMQVXRWUbLBN30dhigPC5cTenjsDa9yxw"
-# TEMP: pointed at local for testing. Change back to
-# "https://slateblue-bear-247969.hostingersite.com" before using this for
-# real orders again.
-$RemoteUrl          = "http://127.0.0.1:8850"
+$RemoteUrl          = "https://slateblue-bear-247969.hostingersite.com"
 $SumatraPath        = "C:\xampp\htdocs\DemoQC\demoqc\tools\SumatraPDF\SumatraPDF-3.6.1-64.exe"
 $PollSeconds        = 5
 $HeartbeatSeconds   = 60
