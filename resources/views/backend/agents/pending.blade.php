@@ -177,10 +177,16 @@
 		fd.append('action_id', action_id);
 		fd.append('mid', mid);
 
+		var action_confirm = false;
+
 		if(action_id == '1'){
-			var action_confirm = confirm("{{ isset($data['backendlang']['backendlang']['Approve_this_agent']) ? $data['backendlang']['backendlang']['Approve_this_agent'] :'' }}");
+			var display_code_prefix = prompt("Display Code for this agent (e.g. AGT) - a running number is added automatically:");
+			if(display_code_prefix !== null && display_code_prefix.trim() !== ''){
+				fd.append('display_code_prefix', display_code_prefix.trim().toUpperCase());
+				action_confirm = true;
+			}
 		}else{
-			var action_confirm = confirm("{{ isset($data['backendlang']['backendlang']['Reject_this_agent']) ? $data['backendlang']['backendlang']['Reject_this_agent'] :'' }}");
+			action_confirm = confirm("{{ isset($data['backendlang']['backendlang']['Reject_this_agent']) ? $data['backendlang']['backendlang']['Reject_this_agent'] :'' }}");
 		}
 		if(action_confirm == true){
 			$.ajax({

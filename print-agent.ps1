@@ -11,11 +11,13 @@
 #
 # ============================== CONFIG ======================================
 $Token              = "o7JEzI8lOmuSAZqYMQVXRWUbLBN30dhigPC5cTenjsDa9yxw"
-$RemoteUrl          = "https://slateblue-bear-247969.hostingersite.com"
+# TEMP: pointed at local for testing. Change back to
+# "https://slateblue-bear-247969.hostingersite.com" before using this for
+# real orders again.
+$RemoteUrl          = "http://127.0.0.1:8850"
 $SumatraPath        = "C:\xampp\htdocs\DemoQC\demoqc\tools\SumatraPDF\SumatraPDF-3.6.1-64.exe"
-$InvoicePrinterName = "Canon LBP6030/6040/6018L"
-$LabelPrinterName   = "D520 Printer"
 $PollSeconds        = 5
+$HeartbeatSeconds   = 60
 $TempDir            = "$PSScriptRoot\print_jobs"
 # ==============================================================================
 
@@ -37,7 +39,11 @@ function Print-Job {
     $transactionNo = $Job.transaction_no
     $attempt = $Job.attempt
 
-    $printerName = if ($documentType -eq "invoice_a4") { $InvoicePrinterName } else { $LabelPrinterName }
+    # Which printer to use comes from the server (Setting Manage > Printer
+    # Manage assigns printers to templates) - the agent doesn't decide this
+    # locally anymore, so adding/reassigning a printer never requires
+    # touching this script.
+    $printerName = $Job.printer_name
     $orientation = if ($documentType -eq "packing_label") { "landscape" } else { "portrait" }
 
     Write-Output "Printing $documentType for $transactionNo (attempt $attempt) on `"$printerName`"..."
@@ -62,12 +68,21 @@ function Print-Job {
             -ArgumentList @("-print-to", "`"$printerName`"", "-print-settings", "noscale,$orientation", "-silent", "`"$filePath`"") `
             -PassThru -NoNewWindow
 
+        # Touching .Handle right after Start() forces .NET to cache the
+        # process handle internally - without this, WaitForExit()/ExitCode
+        # can misreport on a Process object obtained via -PassThru, even
+        # when the process actually ran and exited fine. This was causing
+        # every real, successful print to be logged (and retried) as a
+        # failure.
+        $proc.Handle | Out-Null
+
         $exited = $proc.WaitForExit(60000)
         if (-not $exited) {
             try { $proc.Kill() } catch {}
             throw "SumatraPDF did not exit within 60s - killed it."
         }
 
+        $proc.Refresh()
         if ($proc.ExitCode -ne 0) {
             throw "SumatraPDF exited with code $($proc.ExitCode)"
         }
@@ -97,7 +112,43 @@ function Send-Ack {
     }
 }
 
+function Send-Heartbeat {
+    # Report every printer Windows knows about on this machine - not just
+    # ones already assigned to a template. The server uses the full list to
+    # populate the "pick a printer" dropdown on Setting Manage > Printer
+    # Manage (so assigning a new printer there is a dropdown pick, not
+    # typing an exact name by hand), and separately updates live status for
+    # whichever of these are actually assigned.
+    try {
+        $localPrinters = Get-Printer -ErrorAction Stop
+    } catch {
+        Write-Output "Heartbeat skipped: could not list local printers ($($_.Exception.Message))"
+        return
+    }
+
+    $printers = $localPrinters | ForEach-Object {
+        $status = $_.PrinterStatus.ToString()
+        @{
+            printer_name   = $_.Name
+            port_name      = $_.PortName
+            windows_status = $status
+            is_ready       = ($status -eq "Normal")
+        }
+    }
+
+    $body = @{ printers = @($printers) } | ConvertTo-Json -Depth 4
+
+    try {
+        Invoke-RestMethod -Uri "$RemoteUrl/api/print-agent/heartbeat" `
+            -Headers $Headers -Method Post -Body $body -ContentType "application/json" -TimeoutSec 15 -ErrorAction Stop | Out-Null
+    } catch {
+        Write-Output "Heartbeat failed: $($_.Exception.Message)"
+    }
+}
+
 Write-Output "Polling $RemoteUrl every ${PollSeconds}s. Ctrl+C to stop."
+
+$lastHeartbeat = [DateTime]::MinValue
 
 while ($true) {
     try {
@@ -107,6 +158,11 @@ while ($true) {
         }
     } catch {
         Write-Output "Queue request failed: $($_.Exception.Message)"
+    }
+
+    if (([DateTime]::Now - $lastHeartbeat).TotalSeconds -ge $HeartbeatSeconds) {
+        Send-Heartbeat
+        $lastHeartbeat = [DateTime]::Now
     }
 
     Start-Sleep -Seconds $PollSeconds

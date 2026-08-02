@@ -31,6 +31,11 @@ class Transaction extends Model
         return $this->hasMany(TransactionDetail::class, 'transaction_id', 'id');
     }
 
+    public function printLogs()
+    {
+        return $this->hasMany(TransactionPrintLog::class, 'transaction_id', 'id')->orderByDesc('created_at');
+    }
+
     public function get_transaction_details_with_same_level()
     {
         return $this->hasMany(TransactionDetail::class, 'transaction_id', 'id')->where('same_level_bonus', '>', 0);

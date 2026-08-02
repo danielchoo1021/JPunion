@@ -243,21 +243,14 @@
 						This Month Sales
 					</span>
 				</div>
-				<div class="col-4 TeamBonus" align="center"> 
+				<div class="col-4 PerformanceReward" align="center">
 					<span class="wallet-balance-amount">
 						0%
 					</span>
-					
 					<br>
 					<span class="wallet-desc profile-word">
-						{{ isset($data['lang']['lang']['current_team_bonus_tier']) ? $data['lang']['lang']['current_team_bonus_tier'] :'Current Team Bonus Tier'}}
+						{{ isset($data['lang']['lang']['performance_reward']) ? $data['lang']['lang']['performance_reward'] :'Performance Reward'}}
 					</span>
-					<hr>
-					<div class="progress">
-					  	<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">
-					    	<span class="sr-only">0% {{ isset($data['lang']['lang']['complete']) ? $data['lang']['lang']['complete'] :'Complete'}}</span>
-					  	</div>
-					</div>
 				</div>
 			</div>
 		</div>
@@ -319,10 +312,22 @@
 
 		<div class="form-group container-box profile-setting-list">
 			{{-- help agent register --}}
+			{{-- Register Agent menu item hidden on request - keep the code, just don't render it.
 			@if (Auth::guard('agent')->check())
 			<li>
 				<a href="{{ route('merchant_register', ['r' => 1]) }}" class="profile-word">
 					{{ isset($data['lang']['lang']['register_agent']) ? $data['lang']['lang']['register_agent'] :'Register Agent'}}
+					<span class="pull-right">
+						<i class="fa fa-angle-right" aria-hidden="true"></i>
+					</span>
+				</a>
+			</li>
+			@endif
+			--}}
+			@if (Auth::guard('agent')->check())
+			<li>
+				<a href="{{ route('agentCreateTransaction') }}" class="profile-word">
+					Create Order For Customer
 					<span class="pull-right">
 						<i class="fa fa-angle-right" aria-hidden="true"></i>
 					</span>
@@ -484,7 +489,7 @@
     }
 
     $.ajax({
-        url: '{{ route("LoadTotalPV") }}',
+        url: '{{ route("LoadTotalSales") }}',
         type: 'get',
         success: function(response){
         	$('.TotalPV').html("RM "+response);
@@ -500,10 +505,10 @@
     });
 
     $.ajax({
-        url: '{{ route("getTeamBonusTier") }}',
+        url: '{{ route("getPerformanceReward") }}',
         type: 'get',
         success: function(response){
-        	$('.TeamBonus').html(response);
+        	$('.PerformanceReward').html(response);
         }
     });
 </script>

@@ -420,6 +420,7 @@
 							@endif
 						</th>
 						<th>{{ isset($data['backendlang']['backendlang']['courier_service']) ? $data['backendlang']['backendlang']['courier_service'] :'' }}</th>
+						<th>Print Status</th>
 						<th>{{ isset($data['backendlang']['backendlang']['Action']) ? $data['backendlang']['backendlang']['Action'] :'' }}</th>
 						<!-- <th></th> -->
 					</tr>
@@ -486,7 +487,7 @@
 						@endif
 						<td>
 							{{ !empty($transaction->customer_name) ? $transaction->customer_name : $transaction->address_name }}
-							({{ !empty($transaction->customer_code) ? $transaction->customer_code : 'Guest' }})
+							({{ !empty($transaction->customer_display_code) ? $transaction->customer_display_code : 'Guest' }})
 						</td>
 						<td>
 							{{ number_format($transaction->grand_total, 2) }}
@@ -559,6 +560,31 @@
 							@else
 							-
 							@endif
+							@endif
+						</td>
+						<td>
+							@php
+								$printLogs = $transaction->printLogs;
+								if ($printLogs->contains('status', 'success')) {
+									$printBadgeLabel = 'Printed';
+									$printBadgeBg = '#28a745';
+								} elseif ($printLogs->contains('status', 'skipped')) {
+									$printBadgeLabel = 'Skipped';
+									$printBadgeBg = '#6c757d';
+								} elseif ($printLogs->contains('status', 'failed')) {
+									$printBadgeLabel = 'Print Failed';
+									$printBadgeBg = '#dc3545';
+								} else {
+									$printBadgeLabel = 'Not Printed';
+									$printBadgeBg = '#adb5bd';
+								}
+							@endphp
+							<span style="display: inline-block; padding: 3px 10px; border-radius: 10px; background-color: {{ $printBadgeBg }}; color: #fff; font-size: 12px; font-weight: 600;">
+								{{ $printBadgeLabel }}
+							</span>
+							@if($printLogs->isNotEmpty())
+								<br>
+								<a href="{{ route('transaction_print_history', $transaction->id) }}" target="_blank" style="font-size: 12px;">History</a>
 							@endif
 						</td>
 						<td>
@@ -638,7 +664,7 @@
 							@endif
 
 								@if($transaction->status == '1')
-								<a href="#" class="btn btn-outline-warning btn-sm reprint_invoice_btn" data-id="{{ $transaction->id }}" data-transaction-no="{{ $transaction->transaction_no }}" title="Reprint Invoice + Packing Slip">
+								<a href="#" class="btn btn-outline-warning btn-sm reprint_invoice_btn" data-toggle="modal" data-target="#reprintModal" data-id="{{ $transaction->id }}" data-transaction-no="{{ $transaction->transaction_no }}" title="Reprint">
 									<i class='bi bi-printer-fill'></i>
 								</a>
 								@endif
@@ -672,7 +698,7 @@
 					@endforeach
 					@else
 					<tr>
-						<td colspan="15">{{ isset($data['backendlang']['backendlang']['No_Result_Found']) ? $data['backendlang']['backendlang']['No_Result_Found'] :'' }}</td>
+						<td colspan="16">{{ isset($data['backendlang']['backendlang']['No_Result_Found']) ? $data['backendlang']['backendlang']['No_Result_Found'] :'' }}</td>
 					</tr>
 					@endif
 				</tbody>
@@ -680,6 +706,41 @@
 		</div>
 	</div>
 	{{ $transactions->links() }}
+</div>
+
+<div class="modal fade" id="reprintModal" tabindex="-1" role="dialog" aria-labelledby="reprintModalLabel">
+	<div class="modal-dialog bs-example-modal-sm" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="reprintModalLabel">Reprint <span class="reprint-transaction-no"></span></h4>
+			</div>
+			<div class="modal-body">
+				<input type="hidden" id="reprint_tid">
+				<div class="form-group">
+					<label><b>Printer</b></label>
+					<select class="form-control" id="reprint_printer_id">
+						@forelse($reprintablePrinters as $rp)
+							@php
+								$rpTemplateLabels = [
+									'invoice_a4' => 'Invoice (A4)',
+									'invoice_a5' => 'Invoice (A5)',
+									'packing_label' => 'Packing Label',
+								];
+							@endphp
+							<option value="{{ $rp->id }}">{{ $rp->printer_name }} - {{ $rpTemplateLabels[$rp->document_type] ?? $rp->document_type }}</option>
+						@empty
+							<option value="" disabled>No printers configured - add one in Setting Manage &gt; Printer Manage</option>
+						@endforelse
+					</select>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline-danger" data-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-outline-primary" id="reprint_confirm_btn" {{ $reprintablePrinters->isEmpty() ? 'disabled' : '' }}>Reprint</button>
+			</div>
+		</div>
+	</div>
 </div>
 
 <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -784,35 +845,44 @@
 	});
 
 	$('.reprint_invoice_btn').click(function(e) {
-		e.preventDefault();
-
 		var tid = $(this).data('id');
 		var transactionNo = $(this).data('transaction-no');
 
-		var confirmMessage = confirm('Proceed to print invoice for order ' + transactionNo + '?');
+		$('#reprint_tid').val(tid);
+		$('.reprint-transaction-no').text(transactionNo);
+	});
 
-		if (confirmMessage == true) {
-			$('.loading-gif').show();
+	$('#reprint_confirm_btn').click(function() {
+		var tid = $('#reprint_tid').val();
+		var printerId = $('#reprint_printer_id').val();
 
-			var fd = new FormData();
-			fd.append('tid', tid);
-
-			$.ajax({
-				url: '{{ route("reprint_invoice") }}',
-				type: 'post',
-				data: fd,
-				contentType: false,
-				processData: false,
-				success: function(response) {
-					$('.loading-gif').hide();
-					if (response == 'ok') {
-						toastr.success('Invoice sent to the printers.');
-					} else {
-						toastr.error(response);
-					}
-				},
-			});
+		if (!printerId) {
+			toastr.error('Please select a printer.');
+			return;
 		}
+
+		$('#reprintModal').modal('hide');
+		$('.loading-gif').show();
+
+		var fd = new FormData();
+		fd.append('tid', tid);
+		fd.append('printer_id', printerId);
+
+		$.ajax({
+			url: '{{ route("reprint_invoice") }}',
+			type: 'post',
+			data: fd,
+			contentType: false,
+			processData: false,
+			success: function(response) {
+				$('.loading-gif').hide();
+				if (response == 'ok') {
+					toastr.success('Reprint requested.');
+				} else {
+					toastr.error(response);
+				}
+			},
+		});
 	});
 
 	$('.courier_service_selection').click(function(e) {

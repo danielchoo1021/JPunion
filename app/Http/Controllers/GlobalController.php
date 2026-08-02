@@ -27,6 +27,7 @@ use App\Promotion;
 use App\Transaction;
 use App\SettingPerformanceMain;
 use App\SettingPerformanceDividend;
+use App\SettingPerformanceTier;
 use App\AffiliateCommission;
 use App\WebsiteSetting;
 use App\SettingPrizePool;
@@ -154,6 +155,20 @@ class GlobalController extends Controller
         return array($agent_code, $member_id);
     }
 
+    /**
+     * Same idea as AgentDisplayCode() but the prefix comes from the admin
+     * (backend Agent create form) instead of being hardcoded to "A", so
+     * multiple agents can share a prefix like "AGT" and get AGT01, AGT02,
+     * ... - the running number is scoped to that exact prefix text, zero
+     * padded to at least 2 digits, growing naturally past 99 (AGT100).
+     */
+    public static function AgentDisplayCodeWithPrefix(string $prefix): array
+    {
+        $count = Agent::where('display_code', $prefix)->count() + 1;
+
+        return [$prefix, str_pad($count, 2, '0', STR_PAD_LEFT)];
+    }
+
     public static function MemberCode()
     {
         $agent_code = "Mb";
@@ -200,6 +215,47 @@ class GlobalController extends Controller
         }
 
         return array($agent_code, $member_id);
+    }
+
+    /**
+     * A member recruited under a specific agent gets a code scoped to that
+     * agent - e.g. agent "AGT01" recruiting gives AGT01-0001, AGT01-0002...,
+     * while a different agent "BBB01" recruiting starts its own sequence at
+     * BBB01-0001, independent of any other agent's count.
+     *
+     * The trailing "-" is baked into the returned display_code (not a
+     * separate column) so every existing CONCAT(display_code,
+     * display_running_no) display/search/export query across the codebase
+     * keeps working unmodified and still renders "AGT01-0001" correctly.
+     */
+    public static function MemberDisplayCodeUnderAgent(Agent $agent): array
+    {
+        $agentFullCode = $agent->display_code . $agent->display_running_no;
+        $count = User::where('master_id', $agent->code)->count() + 1;
+
+        return [$agentFullCode . '-', str_pad($count, 4, '0', STR_PAD_LEFT)];
+    }
+
+    /**
+     * Single place both MemberController@store (backend) and
+     * RegisterController@create (frontend self-register via an agent's
+     * referral link/QR) call to decide which of the two member
+     * numbering schemes above applies.
+     *
+     * Agents created before this feature existed all have the old
+     * hardcoded display_code "A" (see AgentDisplayCode()) - they were
+     * never given a custom prefix, so there's nothing meaningful to scope
+     * a downline sequence to. Members recruited under them keep using the
+     * old global Mb-prefixed sequence instead, per instructions not to
+     * touch pre-existing agents/data.
+     */
+    public static function resolveMemberDisplayCode(?Agent $recruitingAgent): array
+    {
+        if (!empty($recruitingAgent) && $recruitingAgent->display_code !== 'A') {
+            return self::MemberDisplayCodeUnderAgent($recruitingAgent);
+        }
+
+        return self::MemberDisplayCode();
     }
 
     //Add Affiliate Table
@@ -2552,6 +2608,28 @@ class GlobalController extends Controller
         return $commission ?? 0;
     }
 
+    /**
+     * "Additional Tier %" on Bonus Manage > Performance Reward - a bonus on
+     * top of the agent's own level's Performance Reward %, based on how many
+     * direct downline AGENTS (not customers) they've recruited. One global
+     * set of tiers (not per-merchant, unlike SettingPerformanceDividend).
+     * Highest tier whose target the agent's downline count meets or exceeds
+     * wins - same lookup pattern as SettingTeamDividend elsewhere.
+     */
+    public static function get_performance_tier_bonus($agentCode)
+    {
+        $direct_downline_agent_count = Agent::where('master_id', $agentCode)
+                                             ->where('status', '1')
+                                             ->count();
+
+        $tier = SettingPerformanceTier::where('target', '<=', $direct_downline_agent_count)
+                                       ->where('status', '1')
+                                       ->orderBy('target', 'desc')
+                                       ->first();
+
+        return !empty($tier->id) ? $tier->amount : 0;
+    }
+
     public static function give_performance_reward($code)
     {
         $agent = Agent::where('code', $code)
@@ -2606,8 +2684,32 @@ class GlobalController extends Controller
                         $personal_total_sales = $personal_total_sales + $direct_customer_transaction->sales;
                     }
 
-                    if(!empty($personal_performance_reward->target) && $personal_total_sales >= $personal_performance_reward->target){
-                        $comm_amount = $personal_total_sales * $personal_performance_reward->amount;
+                    // Guard against duplicate payouts - this function has no other
+                    // idempotency check, and can now be called both by the monthly
+                    // cron (RunPerformance) and by the manual "Trigger" button on
+                    // Bonus Manage > Performance Reward, so it must be safe to call
+                    // more than once for the same agent in the same month.
+                    // NOTE: run_date is actually an int(11) column, not a date - it
+                    // truncates "2026-08" down to 2026, so it can't be trusted for
+                    // month-matching. Use created_at (a real datetime) instead.
+                    $already_rewarded = AffiliateCommission::where('user_id', $agent->code)
+                                                            ->where('type', '95')
+                                                            ->whereYear('created_at', date('Y'))
+                                                            ->whereMonth('created_at', date('m'))
+                                                            ->exists();
+
+                    // NOTE: was `!empty($personal_performance_reward->target)` - empty(0)
+                    // is true in PHP, so a level configured with target=0 ("no minimum,
+                    // everyone qualifies") was silently never rewarded. $personal_performance_reward->id
+                    // being set (checked above) already guarantees target is a real configured value.
+                    if(!$already_rewarded && $personal_total_sales >= $personal_performance_reward->target){
+                        // Additional Tier % only stacks on top of an already-earned
+                        // base reward - an agent who missed their own sales target
+                        // gets nothing, no matter how big their downline team is.
+                        $tier_bonus_percent = self::get_performance_tier_bonus($agent->code);
+                        $total_percent = $personal_performance_reward->amount + $tier_bonus_percent;
+
+                        $comm_amount = $personal_total_sales * $total_percent;
                         $comm_amount = $comm_amount / 100;
 
                         $input_performance_reward = [];
@@ -2615,14 +2717,18 @@ class GlobalController extends Controller
                         $input_performance_reward['user_id'] = $agent->code;
                         $input_performance_reward['product_amount'] = $personal_total_sales;
                         $input_performance_reward['comm_pa_type'] = "Percentage";
-                        $input_performance_reward['comm_pa'] = $personal_performance_reward->amount;
+                        $input_performance_reward['comm_pa'] = $total_percent;
                         $input_performance_reward['comm_amount'] = $comm_amount;
-                        $input_performance_reward['comm_desc'] = "Performance Reward";
+                        $input_performance_reward['comm_desc'] = !empty($tier_bonus_percent)
+                            ? "Performance Reward (Base ".$personal_performance_reward->amount."% + Team Tier ".$tier_bonus_percent."%)"
+                            : "Performance Reward";
                         $input_performance_reward['comm_desc_cn'] = "绩效奖励";
-                        $input_performance_reward['run_date'] = date('Y-m'); 
+                        $input_performance_reward['run_date'] = date('Y-m');
                         $input_performance_reward['status'] = "1";
 
                         AffiliateCommission::create($input_performance_reward);
+
+                        return true;
                     }
                 // }
 
@@ -2955,7 +3061,16 @@ class GlobalController extends Controller
         }
     }
 
-    public static function upgrade_agent_with_package($transaction_no)
+    /**
+     * $prefix is only ever passed by AjaxController@ApproveRejectMerchant,
+     * the one call site where an admin is actually present to type a
+     * Display Code (manual bank-slip Pending Agent approval). The other
+     * ~8 call sites are unattended payment-gateway webhooks (SenangPay,
+     * RevPay, GKash, SurePay success callbacks) with nobody to ask, so
+     * they keep omitting it and fall back to the old hardcoded "A" prefix
+     * via AgentDisplayCode() exactly as before.
+     */
+    public static function upgrade_agent_with_package($transaction_no, $prefix = null)
     {
         try{
             \DB::beginTransaction();
@@ -2987,7 +3102,9 @@ class GlobalController extends Controller
                         $new_agent->lvl = $detail->level_up;
                         $new_agent->save();
                     }else{
-                        $agent_display_code = GlobalController::AgentDisplayCode();
+                        $agent_display_code = !empty($prefix)
+                            ? GlobalController::AgentDisplayCodeWithPrefix($prefix)
+                            : GlobalController::AgentDisplayCode();
 
                         $new_agent = new Agent();
                         $new_agent->master_id = $user->master_id;

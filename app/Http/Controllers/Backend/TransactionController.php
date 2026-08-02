@@ -79,15 +79,17 @@ class TransactionController extends Controller
         $leftJoin = DB::raw("(SELECT * FROM agents WHERE status = '1') AS i");
         $leftJoin2 = DB::raw("(SELECT * FROM admins) AS x");
 
-        $transactions = Transaction::select('transactions.*', 
-                                            DB::raw('COALESCE(COALESCE(ag.f_name, u.f_name), a.f_name) as customer_name'), 
-                                            DB::raw('COALESCE(COALESCE(ag.code, u.code), a.code) as customer_code'), 'te.status as te_status', 'te.einvoice_uuid as te_einvoice')
+        $transactions = Transaction::select('transactions.*',
+                                            DB::raw('COALESCE(COALESCE(ag.f_name, u.f_name), a.f_name) as customer_name'),
+                                            DB::raw('COALESCE(COALESCE(ag.code, u.code), a.code) as customer_code'),
+                                            DB::raw('COALESCE(COALESCE(CONCAT(ag.display_code, ag.display_running_no), CONCAT(u.display_code, u.display_running_no)), CONCAT(a.display_code, a.display_running_no)) as customer_display_code'), 'te.status as te_status', 'te.einvoice_uuid as te_einvoice')
                                    ->join('transaction_details as d', 'd.transaction_id', 'transactions.id')
                                    ->leftJoin('agents as ag', 'ag.code', 'transactions.user_id')
                                    ->leftJoin('users as u', 'u.code', 'transactions.user_id')
                                    ->leftJoin('admins as a', 'a.code', 'transactions.user_id')
                                    ->leftJoin('transaction_einvoices as te','te.transaction_no', 'transactions.transaction_no')
-                                   ->where('transactions.status', '!=', '55');
+                                   ->where('transactions.status', '!=', '55')
+                                   ->with('printLogs');
         if(Auth::guard('merchant')->check()){
             $transactions = $transactions->where('merchant_id', Auth::user()->code);
         }
@@ -386,12 +388,13 @@ class TransactionController extends Controller
         // exit();
 
         $settingEinvoice = SettingEinvoice::where('status', 1)->first();
+        $reprintablePrinters = \App\PrinterAgentStatus::enabled()->orderBy('document_type')->get();
         return view('backend.transactions.new_index', ['transactions'=>$transactions, 'netTransaction'=>$netTransaction,
                                                         'startDate'=>$startDate, 'endDate'=>$endDate,
-                                                        'yearlySales'=>$yearlySales, 'monthlySales'=>$monthlySales, 
-                                                        'dailySales'=>$dailySales,   
+                                                        'yearlySales'=>$yearlySales, 'monthlySales'=>$monthlySales,
+                                                        'dailySales'=>$dailySales,
                                                         'mall'=>request('mall')],
-                                                        compact('ship_details', 'print_ship_details', 'settingEinvoice'));
+                                                        compact('ship_details', 'print_ship_details', 'settingEinvoice', 'reprintablePrinters'));
     }
 
     /**
@@ -1417,45 +1420,41 @@ class TransactionController extends Controller
         return $totalBalance;
     }
 
+    /**
+     * Full auto-print audit trail for one order - every attempt across
+     * every document type/printer, not just the latest status shown as a
+     * badge on the list page. 'skipped' rows are orders that predate a
+     * printer's assignment and were deliberately excluded, not printed.
+     */
+    public function print_history($id)
+    {
+        $transaction = Transaction::findOrFail($id);
+        $logs = $transaction->printLogs;
+
+        return view('backend.transactions.print_history', compact('transaction', 'logs'));
+    }
+
+    /**
+     * "Print" button on the transaction list - streams the same Invoice
+     * (A4) PDF the auto-print pipeline uses (see OrderPrintService /
+     * Setting Manage > Printer Manage's Preview Sample) inline, so a click
+     * opens it in the browser's PDF viewer where Ctrl+P/the viewer's own
+     * print button sends it to any Windows printer. Previously rendered a
+     * separate view('invoice') page instead - that view is left in place
+     * (resources/views/invoice.blade.php) in case it's needed again, just
+     * no longer wired to this button.
+     */
     public function transaction_invoice($transaction_no)
     {
-        $transaction = Transaction::select('transactions.*',
-                                           'ca.address as ca_address', 'ca.address_desc as ca_address_desc')
-                                  ->leftJoin('cod_addresses AS ca', 'ca.id', 'transactions.cod_address')
-                                  ->where('transactions.transaction_no', $transaction_no)
-                                  ->first();
+        $transaction = Transaction::where('transaction_no', $transaction_no)->first();
 
         if(empty($transaction->id)){
             abort(404);
         }
 
-        $bank_online = Bank::find($transaction->bank_id);
-        $bank_cdm = Bank::where('bank_code', $transaction->cdm_bank_id)->first();
+        $pdf = (new \App\Services\OrderPrintService())->renderDocument($transaction, 'invoice_a4');
 
-        $details = TransactionDetail::select('transaction_details.*', 'transaction_details.quantity as t_qty', 'u.uom_en', 'p.packages')
-                                    ->join('products AS p', 'p.id', 'transaction_details.product_id')
-                                    ->leftJoin('setting_uoms AS u', 'u.id', 'p.product_type')
-                                    ->where('transaction_id', $transaction->id)
-                                    ->get();
-
-        $cod_address = CodAddress::first();
-
-        $delivery_state = State::find($transaction->state);
-
-        $delivery_country = TblCountry::where('country_id', $transaction->country)->first();
-
-        $bill_address = TransactionBillingAddress::select('transaction_billing_addresses.*', 's.name as NameOfState', 'tc.country_name')
-                                                 ->leftJoin('states as s', 's.id', 'transaction_billing_addresses.state')
-                                                 ->leftJoin('tbl_countries as tc', 'tc.country_id', 'transaction_billing_addresses.country')
-                                                 ->where('transaction_id', $transaction->id)
-                                                 ->first();
-
-        return view('invoice', ['transaction'=>$transaction, 
-                                'details'=>$details, 
-                                'cod_address'=>$cod_address, 
-                                'delivery_state'=>$delivery_state,
-                                'delivery_country'=>$delivery_country,
-                                'bill_address'=>$bill_address]);
+        return $pdf->stream($transaction_no.'.pdf');
     }
 
     public function topup_list()
@@ -1652,80 +1651,28 @@ class TransactionController extends Controller
         return $totalBalance;
     }
 
+    /**
+     * Not currently routed - the "Download Invoice" button on the
+     * transaction list actually hits HomeController::download_invoice()
+     * (see routes/web.php 'DownloadInvoice/{transaction_no}'). Updated
+     * here too, to the same Invoice (A4) PDF the auto-print pipeline uses,
+     * in case something still points at this route name/controller.
+     */
     public function download_invoice($transaction_no)
     {
-        $transaction = Transaction::select('transactions.*',
-                                           'ca.address as ca_address', 'ca.address_desc as ca_address_desc')
-                                  ->leftJoin('cod_addresses AS ca', 'ca.id', 'transactions.cod_address')
-                                  ->where('transactions.transaction_no', $transaction_no)
-                                  ->first();
+        $transaction = Transaction::where('transaction_no', $transaction_no)->first();
 
         if(empty($transaction->id)){
             abort(404);
         }
 
-        $bank_online = Bank::find($transaction->bank_id);
-        $bank_cdm = Bank::where('bank_code', $transaction->cdm_bank_id)->first();
+        $webSetting = WebsiteSetting::first();
+        $admin = Admin::first();
+        $invoiceName = $webSetting->invoice_name ?? $admin->website_name ?? config('app.name');
 
-        $details = TransactionDetail::select('transaction_details.*', 'transaction_details.quantity as t_qty', 'u.uom_name', 'u.uom_en', 'p.packages')
-                                    ->join('products AS p', 'p.id', 'transaction_details.product_id')
-                                    ->leftJoin('setting_uoms AS u', 'u.id', 'p.product_type')
-                                    ->where('transaction_id', $transaction->id)
-                                    ->get();
+        $pdf = (new \App\Services\OrderPrintService())->renderDocument($transaction, 'invoice_a4');
 
-        $admins = Admin::first();
-
-        $cod_address = CodAddress::first();
-
-        $delivery_state = State::find($transaction->state);
-
-        $delivery_country = TblCountry::where('country_id', $transaction->country)->first();
-
-        $bill_address = TransactionBillingAddress::select('transaction_billing_addresses.*', 's.name as NameOfState', 'tc.country_name')
-                                                 ->leftJoin('states as s', 's.id', 'transaction_billing_addresses.state')
-                                                 ->leftJoin('tbl_countries as tc', 'tc.country_id', 'transaction_billing_addresses.country')
-                                                 ->where('transaction_id', $transaction->id)
-                                                 ->first();
-
-
-        $detail = [
-            'transaction' => $transaction,
-            'details' => $details,
-        ];
-
-        $data['admin'] = $admins;
-        $data['web_setting'] = WebsiteSetting::first();
-        $data['bank_required'] = '0';
-        if(Auth::guard('agent')->check()){
-            $data['userGuardRole'] = "agent";
-        }elseif(Auth::guard('web')->check()){
-            $data['userGuardRole'] = "web";
-        }elseif(Auth::guard('admin')->check()){
-            $data['userGuardRole'] = "admin";
-        }else{
-            $data['userGuardRole'] = "";
-        }
-
-        // $opciones_ssl=array(
-        //   "ssl"=>array(
-        //   "verify_peer"=>false,
-        //   "verify_peer_name"=>false,
-        //   ),
-        // );
-       
-        // $logo_path = asset($admins->ecommerce_logo);
-        // $extencion = pathinfo($logo_path, PATHINFO_EXTENSION);
-        // $data = file_get_contents($logo_path, false, stream_context_create($opciones_ssl));
-        // $img_base_64 = base64_encode($data);
-        // $logo = 'data:image/' . $extencion . ';base64,' . $img_base_64;
-
-        // $image = base64_encode(file_get_contents(asset($admins->ecommerce_logo)));
-
-        $invoice_name = !empty($data['web_setting']->invoice_name) ? $data['web_setting']->invoice_name : $data['admin']->website_name;
-        $pdf = \PDF::loadView('backend.transactions.invoice', ['transaction'=>$transaction, 'details'=>$details, 'cod_address'=>$cod_address, 'delivery_state'=>$delivery_state, 'delivery_country'=>$delivery_country, 'bill_address'=>$bill_address], compact('detail', 'data'));
-        return $pdf->download($invoice_name.' '.$transaction_no.'.pdf');
-
-        // return view('frontend.invoice', ['transaction'=>$transaction, 'details'=>$details]);
+        return $pdf->download($invoiceName.' '.$transaction_no.'.pdf');
     }
 
     public function qr_transactions_list(){

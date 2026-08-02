@@ -50,6 +50,7 @@ Route::get('/merchant_login', 'HomeController@merchant_login')->name('merchant_l
 Route::post('/authorize_merchant', 'HomeController@authorize_merchant')->name('authorize_merchant');
 
 Route::get('/LoadTotalPV', 'AjaxController@LoadTotalPV')->name('LoadTotalPV');
+Route::get('/LoadTotalSales', 'AjaxController@LoadTotalSales')->name('LoadTotalSales');
 Route::get('/LoadMonthlyPV', 'AjaxController@LoadMonthlyPV')->name('LoadMonthlyPV');
 
 Route::get('/LoadPersonalTotalPV', 'AjaxController@LoadPersonalTotalPV')->name('LoadPersonalTotalPV');
@@ -57,6 +58,7 @@ Route::get('/LoadPersonalMonthlyPV', 'AjaxController@LoadPersonalMonthlyPV')->na
 Route::get('/LoadPersonalLastMonthPV', 'AjaxController@LoadPersonalLastMonthPV')->name('LoadPersonalLastMonthPV');
 
 Route::get('/getTeamBonusTier', 'AjaxController@getTeamBonusTier')->name('getTeamBonusTier');
+Route::get('/getPerformanceReward', 'AjaxController@getPerformanceReward')->name('getPerformanceReward');
 
 Route::get('/Menu', 'HomeController@menu')->name('menu');
 Route::get('/merchant_register', 'HomeController@merchant_register')->name('merchant_register');
@@ -215,6 +217,17 @@ Route::group(['middleware' => 'auth:web,merchant,agent,admin,corporate'], functi
 	Route::post('/add_new_shipping_address', 'AjaxController@add_new_shipping_address')->name('add_new_shipping_address');
 
 	Route::post('/displayPv', 'AjaxController@displayPv')->name('displayPv');
+
+	// Agent-only: agent places an order on behalf of one of their own
+	// downline customers (order is attributed to the customer, not the
+	// agent - see HomeController@createTransactionForCustomer). Access is
+	// also enforced inside the controller methods, not just by hiding the
+	// menu link.
+	Route::get('/CreateTransaction', 'HomeController@createTransactionForCustomer')->name('agentCreateTransaction');
+	Route::post('/SaveCustomerTransaction', 'HomeController@saveTransactionForCustomer')->name('agentSaveTransaction');
+	Route::post('/PreviewCustomerTransaction', 'HomeController@previewTransactionForCustomer')->name('agentPreviewTransaction');
+	Route::post('/getTransactionVariationForAgent', 'Backend\AjaxController@getTransactionVariation')->name('agentGetTransactionVariation');
+	Route::post('/getVariationStockForAgent', 'Backend\AjaxController@getVariationStock')->name('agentGetVariationStock');
 });
 Route::post('/getShippingFee', 'AjaxController@getShippingFee')->name('getShippingFee');
 Route::post('/ForgetPasswordEmail', 'AjaxController@ForgetPasswordEmail')->name('ForgetPasswordEmail');
@@ -474,6 +487,8 @@ Route::group(['middleware' => 'auth:admin,merchant,staff'], function () {
 
 	Route::get('setting_performance_dividend', 'Backend\SettingController@setting_performance_dividend')->name('setting_performance_dividend');
 	Route::post('save_setting_performance_dividend', 'Backend\SettingController@save_setting_performance_dividend')->name('save_setting_performance_dividend');
+	Route::post('run_setting_performance_dividend', 'Backend\SettingController@run_setting_performance_dividend')->name('run_setting_performance_dividend');
+	Route::post('save_setting_performance_tier', 'Backend\SettingController@save_setting_performance_tier')->name('save_setting_performance_tier');
 
 	Route::get('setting_team_dividend', 'Backend\SettingController@setting_team_dividend')->name('setting_team_dividend');
 	Route::post('save_setting_team_dividend', 'Backend\SettingController@save_setting_team_dividend')->name('save_setting_team_dividend');
@@ -623,6 +638,8 @@ Route::group(['middleware' => 'auth:admin,merchant,staff'], function () {
 	Route::post('CKEditorUploadImage', 'Backend\AjaxController@CKEditorUploadImage')->name('CKEditorUploadImage');
 
 	Route::get('transaction_invoice/{transaction_no}', 'Backend\TransactionController@transaction_invoice')->name('transaction_invoice');
+
+	Route::get('transaction_print_history/{id}', 'Backend\TransactionController@print_history')->name('transaction_print_history');
 
 	Route::get('topup_invoice/{topup_no}', 'Backend\TransactionController@topup_invoice')->name('topup_invoice');
 
@@ -858,6 +875,12 @@ Route::group(['middleware' => 'auth:admin,merchant,staff'], function () {
 	
 	Route::get('setting_colour', 'Backend\SettingController@setting_colour')->name('setting_colour');
 	Route::post('save_setting_colour', 'Backend\SettingController@save_setting_colour')->name('save_setting_colour');
+
+	Route::get('setting_printer_manage', 'Backend\SettingController@setting_printer_manage')->name('setting_printer_manage');
+	Route::get('setting_printer_manage/preview/{documentType}', 'Backend\SettingController@setting_printer_manage_preview')->name('setting_printer_manage_preview');
+	Route::post('setting_printer_manage/store', 'Backend\SettingController@setting_printer_manage_store')->name('setting_printer_manage_store');
+	Route::post('setting_printer_manage/update/{id}', 'Backend\SettingController@setting_printer_manage_update')->name('setting_printer_manage_update');
+	Route::post('setting_printer_manage/destroy/{id}', 'Backend\SettingController@setting_printer_manage_destroy')->name('setting_printer_manage_destroy');
 
 
 	Route::post('/DeleteSettingWebsiteMessage', 'Backend\AjaxController@DeleteSettingWebsiteMessage')->name('DeleteSettingWebsiteMessage');

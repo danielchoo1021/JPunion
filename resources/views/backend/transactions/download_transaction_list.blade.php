@@ -95,7 +95,7 @@
 			@endif
 			<td>
 				{{ !empty($transaction->customer_name) ? $transaction->customer_name : $transaction->address_name }}
-				({{ !empty($transaction->customer_code) ? $transaction->customer_code : 'Guest' }})
+				({{ !empty($transaction->customer_display_code) ? $transaction->customer_display_code : 'Guest' }})
 			</td>
 			<td>
 				{{ number_format($transaction->grand_total, 2) }}

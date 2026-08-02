@@ -235,7 +235,7 @@ Request::segment(1) == 'ForgetPassword')
                                             width: 200px;
                                             display: none;" class="right-top-items">
                                 <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
-                                    {{ Auth::guard($data['userGuardRole'])->user()->f_name }} - {{ Auth::guard($data['userGuardRole'])->user()->code }}
+                                    {{ Auth::guard($data['userGuardRole'])->user()->f_name }} - {{ Auth::guard($data['userGuardRole'])->user()->display_code }}{{ Auth::guard($data['userGuardRole'])->user()->display_running_no }}
                                 </div>
                                 <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
                                     <a href="{{ route('profile') }}">

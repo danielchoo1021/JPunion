@@ -13,3 +13,7 @@ npm-debug.log
 yarn-error.log
 /uploads
 /admin/uploads
+
+# Temp PDFs the print agent downloads/renders right before sending to
+# SumatraPDF - regenerated every print, never need to be committed.
+/print_jobs

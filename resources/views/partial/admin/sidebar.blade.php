@@ -943,6 +943,13 @@
                             </li>
                             @endif
 
+                            {{-- printer manage: no permission gate, visible to everyone with backend access --}}
+                            <li class="submenu-item {{ (Request::segment(1) == 'setting_printer_manage') ? 'active' : '' }}">
+                                <a href="{{ route('setting_printer_manage') }}" class="submenu-link">
+                                    Printer Manage
+                                </a>
+                            </li>
+
                         </ul>
                     </li>
                 @endif

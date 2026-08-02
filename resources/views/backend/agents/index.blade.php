@@ -286,7 +286,20 @@
 							</span>
 							@endif
 							<br>
-							({{ $agent->master_id }})
+							@php
+								// Show the upline's human-facing display code, not
+								// $agent->master_id (their real internal code) - those
+								// used to always be the same string, but no longer are
+								// now that agents can have a custom display_code prefix.
+								if (!empty($agent->get_upline_det->get_user_id_agent_det->code)) {
+									$uplineDisplayCode = $agent->get_upline_det->get_user_id_agent_det->display_code . $agent->get_upline_det->get_user_id_agent_det->display_running_no;
+								} elseif (!empty($agent->get_upline_det->get_user_id_member_det->code)) {
+									$uplineDisplayCode = $agent->get_upline_det->get_user_id_member_det->display_code . $agent->get_upline_det->get_user_id_member_det->display_running_no;
+								} else {
+									$uplineDisplayCode = $agent->master_id;
+								}
+							@endphp
+							({{ $uplineDisplayCode }})
 						</td>
 						<td>{{ $agent->email }}</td>
 						<td>

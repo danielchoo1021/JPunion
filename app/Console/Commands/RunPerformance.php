@@ -127,8 +127,12 @@ class RunPerformance extends Command
 
         $performance_reward_setting = SettingPerformanceMain::first();
         if(date('d') == date('t')){
-            foreach($merchants as $merchant){
-                GlobalController::give_performance_reward($merchant->code);
+            // Was iterating $merchants and passing Merchant codes ("M...") into
+            // give_performance_reward(), which looks up an Agent by code ("A...")
+            // - those code spaces never overlap, so this silently rewarded no one.
+            $performance_reward_agents = Agent::where('status', '1')->get();
+            foreach($performance_reward_agents as $performance_reward_agent){
+                GlobalController::give_performance_reward($performance_reward_agent->code);
             }
         }
         

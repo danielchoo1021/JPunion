@@ -342,7 +342,19 @@
 																						</span>
 																				@endif
 																				<br>
-																				({{ $user->master_id }})
+																				@php
+																					// Same fix as backend/agents/index.blade.php - show
+																					// the upline's display code, not $user->master_id
+																					// (their real internal code).
+																					if (!empty($user->get_upline_det->get_user_id_agent_det->code)) {
+																						$uplineDisplayCode = $user->get_upline_det->get_user_id_agent_det->display_code . $user->get_upline_det->get_user_id_agent_det->display_running_no;
+																					} elseif (!empty($user->get_upline_det->get_user_id_member_det->code)) {
+																						$uplineDisplayCode = $user->get_upline_det->get_user_id_member_det->display_code . $user->get_upline_det->get_user_id_member_det->display_running_no;
+																					} else {
+																						$uplineDisplayCode = $user->master_id;
+																					}
+																				@endphp
+																				({{ $uplineDisplayCode }})
 																		</td>
 																		<td>{{ $user->email }}</td>
 																		<td>

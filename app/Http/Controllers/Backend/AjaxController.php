@@ -70,6 +70,7 @@ use App\SettingFeedback;
 use App\SettingUom;
 use App\TransactionPackage;
 use App\TransactionPrintLog;
+use App\PrinterAgentStatus;
 use App\JoiningRecord;
 use App\SettingRetailCommission;
 use App\PromoAgentItem;
@@ -644,9 +645,27 @@ class AjaxController extends Controller
 
         $shipping_address = UserShippingAddress::where('user_id', $agent->code)->delete();
       } else {
+        // Admin must set the real Display Code prefix at approval time -
+        // this pending row (or, if it came from a paid upgrade package
+        // below, the new Agent record that replaces it) previously ended
+        // up with the old hardcoded "A" prefix and no way for an admin to
+        // ever set a real one.
+        if (empty($request->display_code_prefix)) {
+          throw new \Exception('Display Code is required to approve this agent.');
+        }
+
         $agent->status = 1;
         $agent->verify_status = 1;
         $agent->lvl = 1;
+
+        if (empty($agent->register_transaction)) {
+          // No linked package-purchase transaction - this row IS the
+          // final agent record, so set its display code directly.
+          $agent_display_code = GlobalController::AgentDisplayCodeWithPrefix($request->display_code_prefix);
+          $agent->display_code = $agent_display_code[0];
+          $agent->display_running_no = $agent_display_code[1];
+        }
+
         $agent->save();
 
         $add_affiliates = GlobalController::add_affiliates($agent->code, $agent->master_id);
@@ -670,7 +689,13 @@ class AjaxController extends Controller
               throw new \Exception($transaction_voucher_assign);
             }
 
-            $upgrade_agent_with_package = GlobalController::upgrade_agent_with_package($transaction->transaction_no);
+            // This is the path that actually creates the final Agent
+            // record for a member who purchased an upgrade-to-agent
+            // package (see GlobalController::upgrade_agent_with_package) -
+            // the prefix has to be threaded through here, not applied to
+            // $agent above, since $agent isn't the record that ends up
+            // active in this case.
+            $upgrade_agent_with_package = GlobalController::upgrade_agent_with_package($transaction->transaction_no, $request->display_code_prefix);
             if ($upgrade_agent_with_package != 'ok') {
               throw new \Exception($upgrade_agent_with_package);
             }
@@ -1378,16 +1403,24 @@ class AjaxController extends Controller
       return 'Transaction not found';
     }
 
+    $printer = PrinterAgentStatus::find($request->printer_id);
+
+    if (empty($printer)) {
+      return 'Printer not found';
+    }
+
     try {
+      $printService = new OrderPrintService();
+
       if (config('printing.mode') === 'queue') {
-        // Nothing to shell out to on this machine. Clear any prior
-        // "success" logs so the transaction reappears in the local print
-        // agent's queue and gets printed again on its next poll.
-        TransactionPrintLog::where('transaction_id', $transaction->id)
-          ->where('status', 'success')
-          ->delete();
+        // Nothing to shell out to on this machine. Clear this specific
+        // printer's log for this document so it reappears in the local
+        // print agent's queue and gets printed again on its next poll -
+        // scoped to just the chosen printer, not every printer/template
+        // this order ever touched.
+        $printService->resetPrintStatus($transaction, $printer->document_type, $printer->printer_name);
       } else {
-        (new OrderPrintService())->printOrder($transaction);
+        $printService->printSpecific($transaction, $printer->document_type, $printer->printer_name);
       }
     } catch (\Exception $e) {
       return $e->getMessage();

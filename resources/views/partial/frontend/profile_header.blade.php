@@ -176,25 +176,10 @@
 			
 			@if(Request::segment(1) !== 'MyAffiliate' && Request::segment(1) !== 'MyCustomer')
 				@if(Auth::guard('web')->check())
+					{{-- Customer accounts don't recruit downlines, so no QR code / My Customer here for now. --}}
 					<div class="form-group container-box sl-personal-header">
 						<div class="row">
-							<div class="col-4" align="center">
-								<a href="{{ route('myqrcode') }}">
-									<img src="{{ asset('images/qrcode.png') }}" width="30">
-									<br>
-									<span class="profile-word">{{ isset($data['lang']['lang']['my_qrcode']) ? $data['lang']['lang']['my_qrcode'] :'我的二维码'}}</span>
-								</a>
-							</div>
-
-							<div class="col-4" align="center">
-								<a href="{{ route('MyCustomer', Auth::user()->code) }}">
-									<img src="{{ asset('images/profile/585e4d1ccb11b227491c339b.png') }}" width="30">
-									<br>
-									<span class="profile-word">{{ isset($data['lang']['lang']['my_customer']) ? $data['lang']['lang']['my_customer'] :'我的顾客'}}</span>
-								</a>
-							</div>
-
-							<div class="col-4" align="center">
+							<div class="col-12" align="center">
 								<a href="{{ route('wallet') }}">
 									<img src="{{ asset('images/profile/c3286d4d32fa90ebcf09b488654612b9-wallet-icon-by-vexels.png') }}" width="30">
 									<br>

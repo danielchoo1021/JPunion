@@ -39,7 +39,7 @@
 						<b class="profile-name">{{ Auth::user()->f_name }} {{ Auth::user()->l_name }}</b>
 						<br>
 						&nbsp;
-						<small class="profile-code">Code: {{ Auth::user()->code }}</small>
+						<small class="profile-code">Code: {{ Auth::user()->display_code }}{{ Auth::user()->display_running_no }}</small>
 						<br>
 						&nbsp;
 						@if(Auth::guard('admin')->check() || Auth::guard('merchant')->check())

@@ -41,7 +41,8 @@ class TransactionExport extends \PhpOffice\PhpSpreadsheet\Cell\StringValueBinder
         $transactions = Transaction::select(
             'transactions.*',
             DB::raw('COALESCE(COALESCE(ag.f_name, u.f_name), a.f_name) as customer_name'),
-            DB::raw('COALESCE(COALESCE(ag.code, u.code), a.code) as customer_code')
+            DB::raw('COALESCE(COALESCE(ag.code, u.code), a.code) as customer_code'),
+            DB::raw('COALESCE(COALESCE(CONCAT(ag.display_code, ag.display_running_no), CONCAT(u.display_code, u.display_running_no)), CONCAT(a.display_code, a.display_running_no)) as customer_display_code')
         )
             ->join('transaction_details as d', 'd.transaction_id', 'transactions.id')
             ->leftJoin('agents as ag', 'ag.code', 'transactions.user_id')

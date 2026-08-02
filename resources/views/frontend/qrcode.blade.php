@@ -71,6 +71,12 @@
 							</div>
 						</div>
 					</div>
+					{{-- Agent Register QR/link - disabled for now, don't want agents
+					     recruiting other agents from the frontend yet. Left
+					     commented (not deleted) in case it's needed again; see
+					     also HomeController@merchant_register for the backend
+					     side, and the matching JS block further down this file. --}}
+					{{--
 					@if(Auth::guard('agent')->check() || Auth::guard('admin')->check())
 					<div class="col-md-6 mb-bt-4" align="center">
 						<br>
@@ -103,6 +109,7 @@
 						</div>
 					</div>
 					@endif
+					--}}
 				</div>
 			</div>
 
@@ -293,6 +300,8 @@
     false
   );
 </script>
+{{-- Agent Register QR/link JS - disabled along with the HTML block above. --}}
+{{--
 @if(Auth::guard('agent')->check() || Auth::guard('admin')->check())
 <script type="text/javascript">
   var canvas = new QRious({
@@ -331,7 +340,7 @@
 	ctx.fillStyle = "#000000";
 	ctx.fillRect(37, 217, 175, 30);
 	ctx.fillStyle = "#FFFFFF";
-	
+
 	ctx.font = '18pt Signika Negative';
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
@@ -362,4 +371,5 @@
   );
 </script>
 @endif
+--}}
 @endsection

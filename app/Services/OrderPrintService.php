@@ -48,6 +48,21 @@ class OrderPrintService
     }
 
     /**
+     * Prints one document to one printer right now, synchronously, on
+     * whichever machine calls this - only meaningful in 'direct' mode
+     * (this machine has the printer attached). Used by the admin's
+     * "Reprint" action so it works the same way whether the site is
+     * running in direct or queue mode; in queue mode, use
+     * resetPrintStatus() instead and let the local agent do the printing.
+     */
+    public function printSpecific(Transaction $transaction, string $documentType, string $printerName): void
+    {
+        $pdf = $this->renderDocument($transaction, $documentType);
+        $job = $this->startPrintJob($transaction, $documentType, $printerName, $pdf);
+        $this->finishPrintJob($job);
+    }
+
+    /**
      * Renders one of the two auto-print documents for a transaction. Shared
      * by the local direct-print path above and by PrintAgentController,
      * which renders the same PDF on demand for the remote polling agent to
@@ -56,7 +71,11 @@ class OrderPrintService
     public function renderDocument(Transaction $transaction, string $documentType)
     {
         if ($documentType === 'invoice_a4') {
-            return $this->buildInvoicePdf($transaction);
+            return $this->buildInvoicePdf($transaction, 'a4');
+        }
+
+        if ($documentType === 'invoice_a5') {
+            return $this->buildInvoicePdf($transaction, 'a5');
         }
 
         if ($documentType === 'packing_label') {
@@ -68,13 +87,14 @@ class OrderPrintService
     }
 
     /**
-     * Compact, paginated A4 invoice for auto-printing. Visually derived from
-     * the system's existing invoice (same data: transaction, item lines,
-     * delivery address) but with tighter spacing so a normal order fits on
-     * one page, and a repeated header + "Page X/Y" footer for the rare order
-     * that spans more than one page.
+     * Compact, paginated invoice for auto-printing, same content/layout for
+     * every paper size - only the page dimensions passed to dompdf change.
+     * Visually derived from the system's existing invoice (same data:
+     * transaction, item lines, delivery address) but with tighter spacing
+     * so a normal order fits on one page, and a repeated header + "Page
+     * X/Y" footer for the rare order that spans more than one page.
      */
-    protected function buildInvoicePdf(Transaction $transaction)
+    protected function buildInvoicePdf(Transaction $transaction, string $paperSize = 'a4')
     {
         $admin = Admin::first();
         $webSetting = WebsiteSetting::first();
@@ -101,7 +121,7 @@ class OrderPrintService
             'website_logo' => $this->resizedLogoPath($admin->website_logo),
             'payment_method_label' => $this->paymentMethodLabel($transaction),
         ]);
-        $pdf->setPaper('a4', 'portrait');
+        $pdf->setPaper($paperSize, 'portrait');
 
         return $pdf;
     }
@@ -193,7 +213,7 @@ class OrderPrintService
      */
     protected function startPrintJob(Transaction $transaction, string $documentType, string $printerName, $pdf)
     {
-        $attempt = $this->nextAttemptNumber($transaction, $documentType);
+        $attempt = $this->nextAttemptNumber($transaction, $documentType, $printerName);
 
         $job = [
             'transaction' => $transaction,
@@ -267,29 +287,92 @@ class OrderPrintService
      * Public so both startPrintJob() (direct mode) and PrintAgentController
      * (queue mode) compute the same "which attempt number is this" and
      * "has this already succeeded / been retried too many times" logic.
+     *
+     * Scoped by printer_name (not just document_type) so that when more
+     * than one printer is assigned to the same template, each printer's
+     * success/failure/retry count is tracked independently - a failure on
+     * one printer doesn't cause a reprint on a printer that already
+     * succeeded for this transaction+document.
      */
-    public function nextAttemptNumber(Transaction $transaction, string $documentType): int
+    public function nextAttemptNumber(Transaction $transaction, string $documentType, string $printerName): int
     {
         return TransactionPrintLog::where('transaction_id', $transaction->id)
             ->where('document_type', $documentType)
+            ->where('printer_name', $printerName)
             ->count() + 1;
     }
 
     /**
-     * True if this document still needs to be (re)printed: no successful
-     * log yet, and we haven't exhausted the retry budget.
+     * True if this document still needs to be (re)printed on this specific
+     * printer: no successful log yet for this transaction+document+printer
+     * combination, and we haven't exhausted the retry budget.
      */
-    public function needsPrinting(Transaction $transaction, string $documentType): bool
+    public function needsPrinting(Transaction $transaction, string $documentType, string $printerName): bool
     {
         $logs = TransactionPrintLog::where('transaction_id', $transaction->id)
             ->where('document_type', $documentType)
+            ->where('printer_name', $printerName)
             ->get();
 
-        if ($logs->contains('status', 'success')) {
+        // 'skipped' (see skipExistingForPrinter()) means "deliberately never
+        // printed" rather than "successfully printed" - kept as a distinct
+        // status so Transaction list's print history shows an honest trail
+        // instead of claiming something was printed when it wasn't - but it
+        // still counts as "handled" for retry purposes either way.
+        if ($logs->whereIn('status', ['success', 'skipped'])->isNotEmpty()) {
             return false;
         }
 
         return $logs->count() < (int) config('printing.max_attempts', 5);
+    }
+
+    /**
+     * Clears every log for one (transaction, document_type, printer)
+     * combination - including past 'skipped' or exhausted 'failed'
+     * attempts - so needsPrinting() goes true again for just that one
+     * printer/template and the retry-attempt budget starts fresh. Used by
+     * the admin's "Reprint" action on the transaction list, which lets an
+     * admin force a specific printer to reprint regardless of what already
+     * happened for other printers assigned to the same or other templates.
+     */
+    public function resetPrintStatus(Transaction $transaction, string $documentType, string $printerName): void
+    {
+        TransactionPrintLog::where('transaction_id', $transaction->id)
+            ->where('document_type', $documentType)
+            ->where('printer_name', $printerName)
+            ->delete();
+    }
+
+    /**
+     * Marks every paid order that predates this printer/template assignment
+     * as 'skipped' (not printed, deliberately excluded) rather than
+     * actually printing the whole order history the moment an admin
+     * assigns a printer to a template. Called right after a new printer is
+     * added on Setting Manage > Printer Manage - without this, the very
+     * next agent poll treats the entire backlog as pending and prints all
+     * of it for real, which happened three times before this existed.
+     */
+    public function skipExistingForPrinter(string $documentType, string $printerName): int
+    {
+        $count = 0;
+
+        foreach (Transaction::where('status', 1)->get() as $transaction) {
+            if (!$this->needsPrinting($transaction, $documentType, $printerName)) {
+                continue;
+            }
+
+            $this->logPrintResult(
+                $transaction,
+                $documentType,
+                $printerName,
+                $this->nextAttemptNumber($transaction, $documentType, $printerName),
+                'skipped',
+                'Skipped: this printer was assigned to this template after the order was already placed.'
+            );
+            $count++;
+        }
+
+        return $count;
     }
 
     protected function startSumatraProcess(string $pdfFilePath, string $printerName, string $documentType): Process

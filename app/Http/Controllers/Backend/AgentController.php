@@ -409,7 +409,8 @@ class AgentController extends Controller
             'email' => $translation_data['backendlang']['backendlang']['Email'] ?? 'Email',
             'ic' => $translation_data['backendlang']['backendlang']['NRIC_no'] ?? 'NRIC no',
             'password' => $translation_data['backendlang']['backendlang']['Password'] ?? 'Password',
-            'dob' => $translation_data['backendlang']['backendlang']['date_of_birth'] ?? 'Date of Birth'
+            'dob' => $translation_data['backendlang']['backendlang']['date_of_birth'] ?? 'Date of Birth',
+            'display_code_prefix' => 'Display Code',
         ];
 
         $validator = Validator::make($request->all(), [
@@ -418,7 +419,8 @@ class AgentController extends Controller
             'email' => ['required', 'unique:users', 'unique:merchants', 'unique:agents'],
             'ic' => ['required', 'unique:users', 'unique:merchants', 'unique:agents'],
             'password' => ['required', 'min:6'],
-            'dob' => 'required'
+            'dob' => 'required',
+            'display_code_prefix' => ['required', 'alpha_num', 'max:20'],
         ], $messages, $attributes);
 
         if ($validator->fails()) {
@@ -430,7 +432,13 @@ class AgentController extends Controller
             \DB::beginTransaction();
 
             if(!empty($request->agent_pno)){
-                $get_upline = Agent::where(DB::raw("CONCAT(display_code, display_running_no)"), $request->agent_pno)->first();
+                // See the matching comment in MemberController@store - the
+                // referral <select> submits the upline's real `code`, not
+                // its display code, and those can now differ since agents
+                // can have a custom display_code prefix.
+                $get_upline = Agent::where('code', $request->agent_pno)
+                    ->orWhere(DB::raw("CONCAT(display_code, display_running_no)"), $request->agent_pno)
+                    ->first();
                 if(empty($get_upline->id)){
                     throw new \Exception("Referral Code Not Exists");
                 }
@@ -454,7 +462,11 @@ class AgentController extends Controller
                 }
             }
 
-            $agent_display_code = GlobalController::AgentDisplayCode();
+            // Admin types the prefix (e.g. "AGT") on the create form; the
+            // running number is auto-assigned and scoped to that exact
+            // prefix, so several agents can share one prefix (AGT01,
+            // AGT02, ...) without colliding.
+            $agent_display_code = GlobalController::AgentDisplayCodeWithPrefix($request->input('display_code_prefix'));
 
             $agent = new Agent();
             $level = !empty($request->lvl) ? $request->lvl : 1;

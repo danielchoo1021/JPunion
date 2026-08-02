@@ -10,10 +10,12 @@ use App\SettingMerchantRebate;
 use App\SettingMerchantCommission;
 use App\SettingPerformanceDividend;
 use App\SettingPerformanceMain;
+use App\SettingPerformanceTier;
 use App\SettingTeamDividend;
 use App\SettingTeamMain;
 use App\SettingRefferalReward;
 use App\AgentLevel;
+use App\Agent;
 use App\Product;
 use App\Transaction;
 use App\Merchant;
@@ -58,6 +60,9 @@ use App\SettingSecondBanner;
 use App\SettingHomeVideo;
 use App\SettingPaymentGateway;
 use App\SettingColour;
+use App\PrinterAgentStatus;
+use App\DiscoveredPrinter;
+use App\Services\OrderPrintService;
  
 
 use App\Http\Controllers\GlobalController;
@@ -408,7 +413,9 @@ class SettingController extends Controller
             $selectDetails[$select->lvl] = array($select->id, $select->type, $select->amount, $select->target);
         }
 
-        return view('backend.settings.setting_performance_dividend', ['levels'=>$levels, 'setting'=>$setting], compact('selectDetails'));
+        $tiers = SettingPerformanceTier::orderBy('target')->get();
+
+        return view('backend.settings.setting_performance_dividend', ['levels'=>$levels, 'setting'=>$setting, 'tiers'=>$tiers], compact('selectDetails'));
     }
 
     public function save_setting_performance_dividend(Request $request)
@@ -469,6 +476,64 @@ class SettingController extends Controller
         
 
         Toastr::success($translation_data['backendlang']['backendlang']['Setting Performance Dividend Successful'] ?? 'Setting Performance Dividend Successful');
+        return redirect()->route('setting_performance_dividend');
+    }
+
+    /**
+     * Manual "Trigger" button - runs the same calculation the monthly cron
+     * (RunPerformance) does for every active agent, for the current month.
+     * Safe to click more than once / same month the cron also runs -
+     * GlobalController::give_performance_reward() skips agents who already
+     * got a Performance Reward this month instead of double-paying them.
+     */
+    public function run_setting_performance_dividend()
+    {
+        $agents = Agent::where('status', '1')->get();
+
+        $rewarded = 0;
+        foreach($agents as $agent){
+            if(GlobalController::give_performance_reward($agent->code) === true){
+                $rewarded++;
+            }
+        }
+
+        Toastr::success('Performance Reward calculated for '.$agents->count().' agent(s) - '.$rewarded.' rewarded this run.');
+        return redirect()->route('setting_performance_dividend');
+    }
+
+    /**
+     * "Additional Tier %" - one global set of tiers (not per-merchant, unlike
+     * the level-based dividends above), keyed by direct downline agent count
+     * rather than by AgentLevel, so admin can freely add/remove tiers instead
+     * of picking from a fixed list. See GlobalController::get_performance_tier_bonus().
+     */
+    public function save_setting_performance_tier(Request $request)
+    {
+        if(!empty($request->deleted_tier_ids)){
+            SettingPerformanceTier::whereIn('id', explode(',', $request->deleted_tier_ids))->delete();
+        }
+
+        if(!empty($request->tier_target)){
+            foreach($request->tier_target as $key => $target){
+                if($target === null || $target === ''){
+                    continue;
+                }
+
+                $data = [
+                    'target' => $target,
+                    'amount' => !empty($request->tier_amount[$key]) ? $request->tier_amount[$key] : 0,
+                    'status' => 1,
+                ];
+
+                if(!empty($request->tier_id[$key])){
+                    SettingPerformanceTier::where('id', $request->tier_id[$key])->update($data);
+                }else{
+                    SettingPerformanceTier::create($data);
+                }
+            }
+        }
+
+        Toastr::success('Additional Tier % saved successfully');
         return redirect()->route('setting_performance_dividend');
     }
 
@@ -3098,6 +3163,136 @@ class SettingController extends Controller
 
 
         return view('backend.settings.setting_colour', compact('settings','select'));
+    }
+
+    /**
+     * Shows the last status the local print agent (print-agent.ps1) reported
+     * for each printer - name, assigned document template, port, and
+     * whether Windows currently considers it ready. This is a snapshot from
+     * the agent's last heartbeat, not a live connection: PrinterAgentStatus
+     * ::isStale() flags rows the agent hasn't reported in a while, since a
+     * dead agent leaves a stale "ready" row that would otherwise look fine.
+     */
+    /**
+     * document_type => human label, shared by the listing table and the
+     * "add printer" template dropdown.
+     */
+    protected $printerTemplateLabels = [
+        'invoice_a4' => 'Invoice (A4)',
+        'invoice_a5' => 'Invoice (A5)',
+        'packing_label' => 'Packing Label',
+    ];
+
+    public function setting_printer_manage()
+    {
+        $printers = PrinterAgentStatus::orderBy('document_type')->orderBy('printer_name')->get();
+
+        // Printers the agent has seen on the machine but nobody has
+        // assigned to a template yet - these are what fill the "add
+        // printer" dropdown, so an admin always picks a real, exact
+        // Windows printer name instead of typing one by hand (a typo there
+        // silently breaks printing, which bit us during setup).
+        $availablePrinters = DiscoveredPrinter::whereNotIn('printer_name', $printers->pluck('printer_name'))
+            ->orderBy('printer_name')
+            ->get();
+
+        $templateLabels = $this->printerTemplateLabels;
+
+        return view('backend.settings.setting_printer_manage', compact('printers', 'availablePrinters', 'templateLabels'));
+    }
+
+    public function setting_printer_manage_store(Request $request)
+    {
+        $request->validate([
+            'printer_name' => 'required|string|unique:printer_agent_statuses,printer_name',
+            'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label',
+        ]);
+
+        PrinterAgentStatus::create([
+            'printer_name' => $request->input('printer_name'),
+            'document_type' => $request->input('document_type'),
+            'is_enabled' => true,
+        ]);
+
+        // Without this, the next agent poll treats every existing paid
+        // order as pending for this printer and actually prints the whole
+        // backlog - see OrderPrintService::skipExistingForPrinter().
+        $skipped = (new OrderPrintService())->skipExistingForPrinter(
+            $request->input('document_type'),
+            $request->input('printer_name')
+        );
+
+        $message = 'Printer added.';
+        if ($skipped > 0) {
+            $message .= " Skipped {$skipped} existing order(s) already placed before this printer was assigned - they won't be printed retroactively.";
+        }
+
+        return redirect()->route('setting_printer_manage')->with('success', $message);
+    }
+
+    public function setting_printer_manage_update(Request $request, $id)
+    {
+        $request->validate([
+            'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label',
+        ]);
+
+        $printer = PrinterAgentStatus::findOrFail($id);
+        $oldDocumentType = $printer->document_type;
+        $newDocumentType = $request->input('document_type');
+
+        $printer->update([
+            'document_type' => $newDocumentType,
+            'is_enabled' => $request->boolean('is_enabled'),
+        ]);
+
+        $message = 'Printer updated.';
+
+        // Reassigning a printer to a different template hits the exact
+        // same "entire order history looks brand new" problem as adding a
+        // printer (see skipExistingForPrinter()) - this printer has never
+        // printed anything under the new template, so without this the
+        // next agent poll would print every existing paid order for real.
+        if ($oldDocumentType !== $newDocumentType) {
+            $skipped = (new OrderPrintService())->skipExistingForPrinter($newDocumentType, $printer->printer_name);
+            if ($skipped > 0) {
+                $message .= " Skipped {$skipped} existing order(s) already placed before this reassignment - they won't be printed retroactively.";
+            }
+        }
+
+        return redirect()->route('setting_printer_manage')->with('success', $message);
+    }
+
+    public function setting_printer_manage_destroy($id)
+    {
+        PrinterAgentStatus::where('id', $id)->delete();
+
+        return redirect()->route('setting_printer_manage')->with('success', 'Printer removed.');
+    }
+
+    /**
+     * Renders the exact same PDF the print agent would actually print for
+     * this template, using the most recent transaction, so admins can see
+     * what "Invoice (A4)" / "Packing Label" looks like without waiting for
+     * a real order.
+     */
+    public function setting_printer_manage_preview(string $documentType)
+    {
+        if (!in_array($documentType, ['invoice_a4', 'invoice_a5', 'packing_label'], true)) {
+            abort(404);
+        }
+
+        $transaction = Transaction::orderBy('id', 'desc')->first();
+
+        if (empty($transaction)) {
+            abort(404, 'No transactions exist yet to render a sample from.');
+        }
+
+        $pdf = (new OrderPrintService())->renderDocument($transaction, $documentType);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="sample_' . $documentType . '.pdf"',
+        ]);
     }
 
     public function save_setting_colour(Request $request)

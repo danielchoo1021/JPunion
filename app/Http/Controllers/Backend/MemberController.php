@@ -309,9 +309,25 @@ class MemberController extends Controller
 
             \DB::beginTransaction();
 
+            $recruiting_agent = null;
+
             if(!empty($request->master_id)){
-                $get_upline = Agent::where(DB::raw("CONCAT(display_code, display_running_no)"), $request->master_id)->first();
-                $get_upline_member = User::where(DB::raw("CONCAT(display_code, display_running_no)"), $request->master_id)->first();
+                // The referral <select> submits the agent's real `code`
+                // (see resources/views/backend/members/form.blade.php,
+                // option value="{{ $ref->code }}"), but a manually typed
+                // referral would be the human-facing display code (e.g.
+                // "ABC01"). These used to always be the same string for
+                // every agent (both derived from the same "A"+padded-count
+                // scheme), so matching only CONCAT(display_code,
+                // display_running_no) happened to also catch the real
+                // code - that stopped being true once agents can have a
+                // custom display_code prefix, so both are checked here.
+                $get_upline = Agent::where('code', $request->master_id)
+                    ->orWhere(DB::raw("CONCAT(display_code, display_running_no)"), $request->master_id)
+                    ->first();
+                $get_upline_member = User::where('code', $request->master_id)
+                    ->orWhere(DB::raw("CONCAT(display_code, display_running_no)"), $request->master_id)
+                    ->first();
 
                 if(empty($get_upline->id) && empty($get_upline_member->id)){
                     throw new \Exception("Referral Code Not Exists");
@@ -319,10 +335,12 @@ class MemberController extends Controller
 
                 if(!empty($get_upline->id)){
                     $master_id = $get_upline->code;
+                    $recruiting_agent = $get_upline;
                 }
 
                 if(!empty($get_upline_member->id)){
                     $master_id = $get_upline_member->code;
+                    $recruiting_agent = null;
                 }
             }else{
                 $master_id = "AD000001";
@@ -340,7 +358,7 @@ class MemberController extends Controller
                 }
             }
 
-            $member_display_code = GlobalController::MemberDisplayCode();
+            $member_display_code = GlobalController::resolveMemberDisplayCode($recruiting_agent);
 
             $user = new User();
 

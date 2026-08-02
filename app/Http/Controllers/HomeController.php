@@ -235,6 +235,12 @@ class HomeController extends Controller
 
     public function merchant_register()
     {
+        // Disabled - don't want agents recruiting other agents from the
+        // frontend yet. See also the commented-out "Agent Register"
+        // QR/link block in resources/views/frontend/qrcode.blade.php.
+        Toastr::warning("This registration option is currently unavailable.");
+        return redirect()->route('home');
+
         $check_authorize = GlobalController::check_authorize();
         if($check_authorize == 1){
             return Redirect::to('https://demoaccount.vesson.my/admin_login');
@@ -673,6 +679,377 @@ class HomeController extends Controller
         $client = new Client($account_sid, $auth_token);
         $client->messages->create($recipients, 
                 ['from' => $twilio_number, 'body' => $message] );
+    }
+
+    /**
+     * Agent-only: pick one of the agent's own downline customers and place
+     * an order for them, using the customer's own pricing tier and address -
+     * as if the customer had placed it themselves. The agent is just
+     * operating the form; see saveTransactionForCustomer() for how the
+     * resulting order is attributed to the customer, not the agent.
+     */
+    public function createTransactionForCustomer()
+    {
+        if (!Auth::guard('agent')->check()) {
+            abort(403);
+        }
+
+        $agent = Auth::guard('agent')->user();
+
+        $downlines = User::where('master_id', $agent->code)
+                          ->where('status', '1')
+                          ->orderBy('f_name')
+                          ->get();
+
+        $products = Product::where('status', '1')
+                            ->where('dow', '1')
+                            ->whereNull('mall')
+                            ->whereNull('upgrade_agent')
+                            ->orderBy('product_name')
+                            ->get();
+
+        return view('frontend.create_transaction', [
+            'agent' => $agent,
+            'downlines' => $downlines,
+            'products' => $products,
+        ]);
+    }
+
+    public function saveTransactionForCustomer(Request $request)
+    {
+        if (!Auth::guard('agent')->check()) {
+            abort(403);
+        }
+
+        $agent = Auth::guard('agent')->user();
+
+        $validator = Validator::make($request->all(), [
+            'customer_code' => 'required',
+            'product_id' => 'required|array|min:1',
+            'payment_method' => 'required|in:bank_slip,processed',
+        ]);
+
+        if ($validator->fails()) {
+            return Redirect::back()->withInput($request->all())->withErrors($validator);
+        }
+
+        // The customer must actually be this agent's own downline - never
+        // trust the submitted customer_code on its own.
+        $customer = User::where('code', $request->customer_code)
+                         ->where('master_id', $agent->code)
+                         ->where('status', '1')
+                         ->first();
+
+        if (empty($customer->id)) {
+            return Redirect::back()->withInput($request->all())->withErrors('Please select a valid customer from your own downline.');
+        }
+
+        if ($request->payment_method == 'bank_slip' && !$request->hasFile('bank_slip')) {
+            return Redirect::back()->withInput($request->all())->withErrors('Please upload the bank transfer slip.');
+        }
+
+        $shipping_address = UserShippingAddress::where('user_id', $customer->code)
+                                                ->where('default', '1')
+                                                ->first();
+
+        if (empty($shipping_address->id)) {
+            if (empty($request->address)) {
+                return Redirect::back()->withInput($request->all())->withErrors('This customer has no delivery address on file yet - please fill in an address below to save as their default.');
+            }
+
+            $address_validator = Validator::make($request->all(), [
+                'f_name' => 'required',
+                'phone' => 'required',
+                'address' => 'required',
+                'city' => 'required',
+                'postcode' => 'required',
+                'state' => 'required',
+            ]);
+
+            if ($address_validator->fails()) {
+                return Redirect::back()->withInput($request->all())->withErrors($address_validator);
+            }
+
+            $shipping_address = new UserShippingAddress();
+            $shipping_address->user_id = $customer->code;
+            $shipping_address->default = '1';
+            $shipping_address->f_name = $request->f_name;
+            $shipping_address->phone = $request->phone;
+            $shipping_address->email = !empty($request->email) ? $request->email : $customer->email;
+            $shipping_address->country_code = $request->country_code;
+            $shipping_address->address = $request->address;
+            $shipping_address->postcode = $request->postcode;
+            $shipping_address->city = $request->city;
+            $shipping_address->state = $request->state;
+            $shipping_address->country = !empty($request->country) ? $request->country : 160;
+            $shipping_address->save();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $resolved = $this->resolveTransactionLineItems($customer->code, $request);
+            $line_items = $resolved['line_items'];
+            $sub_total = $resolved['sub_total'];
+            $weight_total = $resolved['weight_total'];
+
+            $shipping_fee = GlobalController::get_shipping_fee($shipping_address->state, $weight_total, $shipping_address->country);
+
+            $transaction = new Transaction();
+            $transaction->transaction_no = GlobalController::GenerateTransactionNo();
+            $transaction->user_id = $customer->code;
+            $transaction->weight = $weight_total;
+            $transaction->sub_total = $sub_total;
+            $transaction->shipping_fee = $shipping_fee;
+            $transaction->grand_total = $sub_total + $shipping_fee;
+            $transaction->address_name = $shipping_address->f_name;
+            $transaction->address = $shipping_address->address;
+            $transaction->postcode = $shipping_address->postcode;
+            $transaction->city = $shipping_address->city;
+            $transaction->state = $shipping_address->state;
+            $transaction->country = $shipping_address->country;
+            $transaction->country_code = $shipping_address->country_code;
+            $transaction->phone = $shipping_address->phone;
+            $transaction->email = $shipping_address->email;
+            $transaction->remark = 'Created by agent '.$agent->display_code.$agent->display_running_no.' ('.$agent->f_name.') on behalf of customer.';
+
+            if ($request->payment_method == 'bank_slip') {
+                $files = $request->file('bank_slip');
+                $name = md5($files->getClientOriginalName().date('Y-m-d H:i:s')).'.'.$files->getClientOriginalExtension();
+                $files->move(GlobalController::get_image_path('uploads/bank_slip/'.$customer->code.'/'), $name);
+
+                $transaction->bank_slip = 'uploads/bank_slip/'.$customer->code.'/'.$name;
+                $transaction->status = 98;
+            } else {
+                $transaction->status = 1;
+            }
+
+            $transaction->save();
+
+            foreach ($line_items as $item) {
+                $product = $item['product'];
+                $variation = $item['variation'];
+                $second_variation = $item['second_variation'];
+
+                $detail = new TransactionDetail();
+                $detail->transaction_id = $transaction->id;
+                $detail->product_image = !empty($product->first_image->image) ? $product->first_image->image : '';
+                $detail->product_id = $product->id;
+                $detail->variation_id = !empty($variation->id) ? $variation->id : null;
+                $detail->second_variation_id = !empty($second_variation->id) ? $second_variation->id : null;
+                $detail->item_code = $product->item_code;
+                $detail->product_code = $product->product_code;
+                $detail->unit_weight = $item['unit_weight'];
+                $detail->sub_category = !empty($variation->variation_name) ? $variation->variation_name : null;
+                $detail->second_sub_category = !empty($second_variation->variation_name) ? $second_variation->variation_name : null;
+                $detail->product_name = $product->product_name;
+                $detail->unit_price = $item['unit_price'];
+                $detail->costing_price = $product->costing_price;
+                $detail->quantity = $item['quantity'];
+                $detail->get_pv = ($item['unit_price'] > 0) ? $item['get_pv'] : 0;
+                $detail->save();
+
+                if (!empty($product->packages)) {
+                    foreach ($product->get_product_packages as $package) {
+                        $transaction_package = new TransactionPackage();
+                        $transaction_package->detail_id = $detail->id;
+                        $transaction_package->product_id = $package->products;
+                        $transaction_package->variation_id = $package->variation_id;
+                        $transaction_package->second_variation_id = $package->second_variation_id;
+                        $transaction_package->voucher_id = $package->voucher_id;
+                        $transaction_package->quantity = $package->qty;
+                        $transaction_package->save();
+                    }
+                }
+            }
+
+            // Marked as already processed (not the bank-slip pending-review
+            // path): run the same commission pipeline that admin-created
+            // transactions run immediately (Backend\TransactionController@store),
+            // since this path skips the normal admin verification step where
+            // that would otherwise happen.
+            if ($transaction->status == 1) {
+                $transaction_voucher_assign = GlobalController::transaction_voucher_assign($transaction->id);
+                if ($transaction_voucher_assign != 'ok') {
+                    throw new \Exception($transaction_voucher_assign);
+                }
+
+                if (empty($transaction->commission_disabled)) {
+                    $rebate_commission = GlobalController::rebate_commission($transaction->user_id, $transaction->transaction_no);
+                    if ($rebate_commission != 'ok') {
+                        throw new \Exception($rebate_commission);
+                    }
+
+                    $heirarchy_commission = GlobalController::heirarchy_commission($transaction->user_id, $transaction->transaction_no);
+                    if ($heirarchy_commission != 'ok') {
+                        throw new \Exception($heirarchy_commission);
+                    }
+                }
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return Redirect::back()->withInput($request->all())->withErrors($e->getMessage());
+        }
+
+        Toastr::success('Order created for '.$customer->f_name.' successfully!');
+        return redirect()->route('agentCreateTransaction');
+    }
+
+    /**
+     * Resolves the submitted product_id[]/variation_id[]/second_variation_id[]/quantity[]
+     * rows into priced, stock-checked line items for $customerCode - shared by
+     * saveTransactionForCustomer() (the real save) and previewTransactionForCustomer()
+     * (the live price preview) so the preview can never drift from what actually
+     * gets charged.
+     */
+    protected function resolveTransactionLineItems($customerCode, Request $request)
+    {
+        $sub_total = 0;
+        $weight_total = 0;
+        $line_items = [];
+
+        foreach ($request->product_id as $key => $product_id) {
+            $quantity = !empty($request->quantity[$key]) ? (int) $request->quantity[$key] : 0;
+
+            if (empty($product_id) || $quantity < 1) {
+                continue;
+            }
+
+            $product = Product::find($product_id);
+            if (empty($product->id)) {
+                throw new \Exception('Invalid product selected.');
+            }
+
+            $variation_id = !empty($request->variation_id[$key]) ? $request->variation_id[$key] : 0;
+            $second_variation_id = !empty($request->second_variation_id[$key]) ? $request->second_variation_id[$key] : 0;
+
+            if (!empty($product->variation_enable) && empty($variation_id)) {
+                throw new \Exception($product->product_name.': please select a variation.');
+            }
+            if (!empty($product->second_variation_enable) && empty($second_variation_id)) {
+                throw new \Exception($product->product_name.': please select a second variation.');
+            }
+
+            // Stock check, mirroring how the normal storefront guards
+            // against overselling - only against status=1 (Paid)
+            // transactions, same as GlobalController::balance_quantity().
+            if (empty($product->packages)) {
+                if (!empty($second_variation_id)) {
+                    $balance = GlobalController::second_variation_balance_quantity($second_variation_id);
+                } elseif (!empty($variation_id)) {
+                    $balance = GlobalController::variation_balance_quantity($variation_id);
+                } else {
+                    $balance = GlobalController::balance_quantity($product->id);
+                }
+
+                if ($quantity > $balance) {
+                    throw new \Exception($product->product_name.': not enough stock left ('.max($balance, 0).' available).');
+                }
+            }
+
+            $pricing = GlobalController::get_product_pricing(md5($product->id), $customerCode, $variation_id, $second_variation_id);
+            $unit_price = $pricing['product_price'];
+
+            $variation = !empty($variation_id) ? ProductVariation::find($variation_id) : null;
+            $second_variation = !empty($second_variation_id) ? ProductSecondVariation::find($second_variation_id) : null;
+
+            if (!empty($second_variation->id)) {
+                $unit_weight = $second_variation->variation_weight;
+                $get_pv = $second_variation->variation_get_pv;
+            } elseif (!empty($variation->id)) {
+                $unit_weight = $variation->variation_weight;
+                $get_pv = $variation->variation_get_pv;
+            } else {
+                $unit_weight = $product->weight;
+                $get_pv = $product->get_pv;
+            }
+
+            $sub_total += $unit_price * $quantity;
+            $weight_total += $unit_weight * $quantity;
+
+            $line_items[] = [
+                'key' => $key,
+                'product' => $product,
+                'variation' => $variation,
+                'second_variation' => $second_variation,
+                'quantity' => $quantity,
+                'unit_price' => $unit_price,
+                'unit_weight' => $unit_weight,
+                'get_pv' => $get_pv,
+            ];
+        }
+
+        if (empty($line_items)) {
+            throw new \Exception('Please select at least one product.');
+        }
+
+        return [
+            'line_items' => $line_items,
+            'sub_total' => $sub_total,
+            'weight_total' => $weight_total,
+        ];
+    }
+
+    /**
+     * Agent-only AJAX: live price/total preview while filling in the
+     * create-order-for-customer form, using the exact same pricing/stock
+     * logic as the real save (resolveTransactionLineItems()). No DB writes.
+     */
+    public function previewTransactionForCustomer(Request $request)
+    {
+        if (!Auth::guard('agent')->check()) {
+            abort(403);
+        }
+
+        $agent = Auth::guard('agent')->user();
+
+        $customer = User::where('code', $request->customer_code)
+                         ->where('master_id', $agent->code)
+                         ->where('status', '1')
+                         ->first();
+
+        if (empty($customer->id)) {
+            return response()->json(['error' => 'Please select a customer.']);
+        }
+
+        if (empty($request->product_id)) {
+            return response()->json(['error' => null, 'lines' => [], 'sub_total' => 0, 'shipping_fee' => 0, 'grand_total' => 0, 'has_address' => null]);
+        }
+
+        try {
+            $resolved = $this->resolveTransactionLineItems($customer->code, $request);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()]);
+        }
+
+        $shipping_address = UserShippingAddress::where('user_id', $customer->code)
+                                                ->where('default', '1')
+                                                ->first();
+
+        $shipping_fee = !empty($shipping_address->id)
+            ? GlobalController::get_shipping_fee($shipping_address->state, $resolved['weight_total'], $shipping_address->country)
+            : null;
+
+        $lines = [];
+        foreach ($resolved['line_items'] as $item) {
+            $lines[] = [
+                'key' => $item['key'],
+                'unit_price' => number_format($item['unit_price'], 2),
+                'quantity' => $item['quantity'],
+                'line_total' => number_format($item['unit_price'] * $item['quantity'], 2),
+            ];
+        }
+
+        return response()->json([
+            'error' => null,
+            'lines' => $lines,
+            'sub_total' => number_format($resolved['sub_total'], 2),
+            'shipping_fee' => !is_null($shipping_fee) ? number_format($shipping_fee, 2) : null,
+            'grand_total' => !is_null($shipping_fee) ? number_format($resolved['sub_total'] + $shipping_fee, 2) : null,
+            'has_address' => !empty($shipping_address->id),
+        ]);
     }
 
     public function profile()
@@ -8200,71 +8577,29 @@ class HomeController extends Controller
                                          'bill_address'=>$bill_address]);
     }
 
+    /**
+     * "Download Invoice" button on the backend transaction list - now
+     * renders the same Invoice (A4) PDF the auto-print pipeline uses (see
+     * OrderPrintService / Setting Manage > Printer Manage's Preview
+     * Sample), instead of the old bespoke view('invoice') render. That old
+     * view (resources/views/invoice.blade.php) is left in place, just no
+     * longer wired to this button, in case it's needed again.
+     */
     public function download_invoice($transaction_no)
     {
-        $transaction = Transaction::select('transactions.*',
-                                           'ca.address as ca_address', 'ca.address_desc as ca_address_desc')
-                                  ->leftJoin('cod_addresses AS ca', 'ca.id', 'transactions.cod_address')
-                                  ->where('transactions.transaction_no', $transaction_no)
-                                  ->first();
+        $transaction = Transaction::where('transaction_no', $transaction_no)->first();
 
         if(empty($transaction->id)){
             abort(404);
         }
 
-        $bank_online = Bank::find($transaction->bank_id);
-        $bank_cdm = Bank::where('bank_code', $transaction->cdm_bank_id)->first();
+        $webSetting = WebsiteSetting::first();
+        $admin = Admin::first();
+        $invoiceName = $webSetting->invoice_name ?? $admin->website_name ?? config('app.name');
 
-        $details = TransactionDetail::select('transaction_details.*', 'transaction_details.quantity as t_qty', 'u.uom_name', 'u.uom_en', 'p.packages')
-                                    ->join('products AS p', 'p.id', 'transaction_details.product_id')
-                                    ->leftJoin('setting_uoms AS u', 'u.id', 'p.product_type')
-                                    ->where('transaction_id', $transaction->id)
-                                    ->get();
+        $pdf = (new \App\Services\OrderPrintService())->renderDocument($transaction, 'invoice_a4');
 
-        $admins = Admin::first();
-
-        $cod_address = CodAddress::first();
-
-        $setting_pickup = SettingPickUpAddress::first();
-
-        $pickup_state = State::find($setting_pickup->state);
-
-        $delivery_state = State::find($transaction->state);
-
-        $delivery_country = TblCountry::where('country_id', $transaction->country)->first();
-
-        $bill_address = TransactionBillingAddress::select('transaction_billing_addresses.*', 's.name as NameOfState', 'tc.country_name')
-                                                 ->leftJoin('states as s', 's.id', 'transaction_billing_addresses.state')
-                                                 ->leftJoin('tbl_countries as tc', 'tc.country_id', 'transaction_billing_addresses.country')
-                                                 ->where('transaction_id', $transaction->id)
-                                                 ->first();
-
-        $detail = [
-            'transaction' => $transaction,
-            'details' => $details,
-        ];
-
-        $datas['admin'] = $admins;
-        $datas['web_setting'] = WebsiteSetting::first();
-        $datas['bank_required'] = '0';
-        if(Auth::guard('agent')->check()){
-            $datas['userGuardRole'] = "agent";
-        }elseif(Auth::guard('web')->check()){
-            $datas['userGuardRole'] = "web";
-        }elseif(Auth::guard('admin')->check()){
-            $datas['userGuardRole'] = "admin";
-        }else{
-            $datas['userGuardRole'] = "";
-        }
-
-        $pdf = \PDF::loadView('invoice', ['transaction'=>$transaction, 'details'=>$details, 'cod_address'=>$cod_address, 'delivery_state'=>$delivery_state, 'setting_pickup'=>$setting_pickup, 'pickup_state'=>$pickup_state, 'delivery_country'=>$delivery_country, 'bill_address'=>$bill_address], compact('detail', 'datas'));
-
-        $invoice_name = !empty($datas['web_setting']->invoice_name) ? $datas['web_setting']->invoice_name : $datas['admin']->website_name;
-        return $pdf->download($invoice_name." ".$transaction_no.'.pdf');
-
-        // return view('frontend.invoice', ['transaction'=>$transaction, 'details'=>$details]);
-
-        // return view('invoice', ['transaction'=>$transaction, 'details'=>$details, 'cod_address'=>$cod_address, 'delivery_state'=>$delivery_state, 'setting_pickup'=>$setting_pickup, 'pickup_state'=>$pickup_state, 'delivery_country'=>$delivery_country, 'bill_address'=>$bill_address], compact('detail', 'datas'));
+        return $pdf->download($invoiceName." ".$transaction_no.'.pdf');
     }
 
     public function sendAccountPassword($to, $from, $subject, $memberCode)
@@ -9446,6 +9781,11 @@ class HomeController extends Controller
 
     public function transfer_cash_to_topup(Request $request)
     {
+        // Disabled - the form on MyWallet is commented out
+        // (resources/views/frontend/wallet.blade.php); this guard blocks
+        // the route directly too, in case something still posts to it.
+        return Redirect::back()->withErrors('This feature is currently unavailable.');
+
         try {
             \DB::beginTransaction();
 

@@ -169,6 +169,11 @@
 										</div>
 									</form>
 
+									{{-- Transfer Cash Wallet To Topup Wallet - disabled, not meant to be
+									     used right now. Left commented (not deleted) in case it's needed
+									     again; see also the early-return guard in
+									     HomeController@transfer_cash_to_topup for the backend side. --}}
+									{{--
 									<form method="POST" action="{{ route('transfer_cash_to_topup') }}" id="transfer-form" enctype="multipart/form-data">
 										@csrf
 										<div class="container-box">
@@ -200,6 +205,7 @@
 											</button>
 										</div>
 									</form>
+									--}}
 								</div>
 								<div class="col-md-6">
 									<form method="POST" action="{{ route('submit_topup') }}" id="topup-form" enctype="multipart/form-data">

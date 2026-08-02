@@ -108,6 +108,15 @@
                                 </span>
                              </div>
                         </div>
+                        <div class="col-md-6">
+                             <div class="form-group">
+                                <label><b>Display Code</b><span class="important-text">*</span></label>
+                                <input type="text" class="form-control required-feild" name="display_code_prefix" placeholder='e.g. AGT' value="{{ old('display_code_prefix') }}" style="text-transform: uppercase;">
+                                <span class="important-text">
+                                    A running number is added automatically (e.g. AGT01, AGT02, ...). Customers this agent recruits will get codes based on this (e.g. AGT01-0001). Cannot be changed after the agent is created.
+                                </span>
+                             </div>
+                        </div>
                         @endif
 					</div>
 

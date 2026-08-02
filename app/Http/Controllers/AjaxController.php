@@ -42,6 +42,7 @@ use App\PromoAgentItemDetail;
 use App\TblCountry;
 use App\Affiliate;
 use App\SettingTeamDividend;
+use App\SettingPerformanceDividend;
 use App\WithdrawalStock;
 use App\WithdrawalStockDetail;
 use App\Agent;
@@ -2559,67 +2560,113 @@ class AjaxController extends Controller
         return number_format($transactions->totalGetPV + $downline_total_pv + $downline_customer_total_pv + $member_total_pv, 2);
     }
 
-    public function LoadMonthlyPV()
+    /**
+     * "My Sales" on Profile - own purchases + direct customers' purchases
+     * only (not the whole downline network), using (grand_total -
+     * shipping_fee) per order. This is the exact scope/formula
+     * GlobalController::give_performance_reward() uses to decide Performance
+     * Reward eligibility, so the sales figure shown here always matches what
+     * the Performance Reward % next to it is actually based on.
+     */
+    protected function resolveAgentAndDirectCustomerSales($buyerCode, $monthFilter = null)
     {
-        if(!empty(Auth::guard('admin')->check())){
-            $buyerCode = Auth::guard('admin')->user()->code;
-        }elseif(!empty(Auth::guard('agent')->check())){
-            $buyerCode = Auth::guard('agent')->user()->code;
-        }elseif(!empty(Auth::guard('corporate')->check())){
-            $buyerCode = Auth::guard('corporate')->user()->code;
-        }elseif(!empty(Auth::guard('web')->check())){
-            $buyerCode = Auth::guard('web')->user()->code;
-        }else{
-          if(empty($_COOKIE['new_guest'])){
-            $buyerCode = setcookie('new_guest', strtotime(date('Y-m-d H:i:s')).rand(100000, 999999), time() + (86400 * 30), "/");
-          }else{
-            $buyerCode = $_COOKIE['new_guest'];
-          }
+        $own_query = Transaction::select(DB::raw('COALESCE(SUM(grand_total - shipping_fee), 0) as totalSales'))
+                                 ->where('user_id', $buyerCode)
+                                 ->where('status', '1');
+
+        $customer_query = Transaction::select(DB::raw('COALESCE(SUM(grand_total - shipping_fee), 0) as totalSales'))
+                                      ->join('users as u', 'transactions.user_id', 'u.code')
+                                      ->where('u.master_id', $buyerCode)
+                                      ->where('transactions.status', '1');
+
+        if (!empty($monthFilter)) {
+            $own_query = $own_query->where(DB::raw('DATE_FORMAT(created_at, "%Y-%m")'), $monthFilter);
+            $customer_query = $customer_query->where(DB::raw('DATE_FORMAT(transactions.created_at, "%Y-%m")'), $monthFilter);
         }
 
-        $transactions = Transaction::select(DB::raw('SUM(unit_price * d.quantity) as totalSales'))
-                                   ->join('transaction_details as d', 'd.transaction_id', 'transactions.id')
-                                   ->where('user_id', $buyerCode)
-                                   ->where('transactions.status', '1')
-                                   ->where(DB::raw('DATE_FORMAT(transactions.created_at, "%Y-%m")'), date('Y-m'))
-                                   ->first();
+        $own_sales = $own_query->first()->totalSales;
+        $customer_sales = $customer_query->first()->totalSales;
 
-        $affs = Affiliate::select(DB::raw('SUM(unit_price * d.quantity) as totalSales'))
-                         ->join('agents as m', 'm.code', 'affiliates.affiliate_id')
-                         ->join('transactions as t', 't.user_id', 'affiliates.affiliate_id')
-                         ->join('transaction_details as d', 'd.transaction_id', 't.id')
-                         ->where('t.status', '1')
-                         ->where('affiliates.user_id', $buyerCode)
-                         ->where(DB::raw('DATE_FORMAT(t.created_at, "%Y-%m")'), date('Y-m'))
-                         ->first();
-        
+        return $own_sales + $customer_sales;
+    }
 
-        $downline_total_sales = $affs->totalSales;
+    protected function currentSalesBuyerCode()
+    {
+        if(!empty(Auth::guard('admin')->check())){
+            return Auth::guard('admin')->user()->code;
+        }elseif(!empty(Auth::guard('agent')->check())){
+            return Auth::guard('agent')->user()->code;
+        }elseif(!empty(Auth::guard('corporate')->check())){
+            return Auth::guard('corporate')->user()->code;
+        }elseif(!empty(Auth::guard('web')->check())){
+            return Auth::guard('web')->user()->code;
+        }else{
+          if(empty($_COOKIE['new_guest'])){
+            return setcookie('new_guest', strtotime(date('Y-m-d H:i:s')).rand(100000, 999999), time() + (86400 * 30), "/");
+          }
+          return $_COOKIE['new_guest'];
+        }
+    }
 
-        $affs_customers = Affiliate::select(DB::raw('SUM(unit_price * d.quantity) as totalSales'))
-                                   ->join('agents as m', 'm.code', 'affiliates.affiliate_id')
-                                   ->join('users as u', 'u.master_id', 'm.code')
-                                   ->join('transactions as t', 't.user_id', 'u.code')
-                                   ->join('transaction_details as d', 'd.transaction_id', 't.id')
-                                   ->where('t.status', '1')
-                                   ->where('affiliates.user_id', $buyerCode)
-                                   ->where(DB::raw('DATE_FORMAT(t.created_at, "%Y-%m")'), date('Y-m'))
-                                   ->first();
-        $downline_customer_total_sales = $affs_customers->totalSales;
-        // exit();
+    public function LoadTotalSales()
+    {
+        $buyerCode = $this->currentSalesBuyerCode();
 
-        $mb_transactions = Transaction::select(DB::raw('SUM(unit_price * d.quantity) as totalSales'))
-                               ->join('transaction_details as d', 'd.transaction_id', 'transactions.id')
-                               ->join('users as u', 'transactions.user_id', 'u.code')
-                               ->where('u.master_id', $buyerCode)
-                               ->where('transactions.status', '1')
-                               ->where(DB::raw('DATE_FORMAT(transactions.created_at, "%Y-%m")'), date('Y-m'))
-                               ->first();
+        return number_format($this->resolveAgentAndDirectCustomerSales($buyerCode), 2);
+    }
 
-        $member_total_sales = $mb_transactions->totalSales;
+    public function LoadMonthlyPV()
+    {
+        $buyerCode = $this->currentSalesBuyerCode();
 
+        return number_format($this->resolveAgentAndDirectCustomerSales($buyerCode, date('Y-m')), 2);
+    }
 
-        return number_format(($transactions->totalSales ?? 0) + ($downline_total_sales ?? 0) + ($downline_customer_total_sales ?? 0) + ($member_total_sales ?? 0), 2);
+    /**
+     * Agent-only: this month's Performance Reward % based on the agent's own
+     * + direct customers' sales this month, using the exact same target/lvl
+     * lookup as GlobalController::give_performance_reward() (which is what
+     * actually pays out the reward on the last day of the month) - this is
+     * a live preview of that calculation, not a separate rule.
+     */
+    public function getPerformanceReward()
+    {
+        $label = (!empty($_COOKIE['global_language']) && $_COOKIE['global_language'] == '1') ? '绩效奖励' : 'Performance Reward';
+
+        if (!Auth::guard('agent')->check()) {
+            return '<span class="wallet-balance-amount">-</span><br><span class="wallet-desc profile-word">'.$label.'</span>';
+        }
+
+        $agent = Auth::guard('agent')->user();
+
+        $performance_reward_setting = SettingPerformanceDividend::where('lvl', $agent->lvl)
+                                                                  ->where('status', '1')
+                                                                  ->first();
+
+        $total_sales = $this->resolveAgentAndDirectCustomerSales($agent->code, date('Y-m'));
+
+        // Same "Additional Tier %" (direct downline agent count) that
+        // GlobalController::give_performance_reward() adds at payout time -
+        // shown here too so the preview matches what actually gets paid.
+        $tier_bonus_percent = GlobalController::get_performance_tier_bonus($agent->code);
+
+        $percent = 0;
+        $note = '';
+
+        if (!empty($performance_reward_setting->id)) {
+            $effective_percent = $performance_reward_setting->amount + $tier_bonus_percent;
+
+            if ($total_sales >= $performance_reward_setting->target) {
+                $percent = $effective_percent;
+            } else {
+                $remaining = $performance_reward_setting->target - $total_sales;
+                $note = '<hr>RM '.number_format($remaining, 2).' more to hit '.number_format($effective_percent, 2).'%';
+            }
+        }
+
+        return '<span class="wallet-balance-amount">'.number_format($percent, 2).'%</span>
+                <br>
+                <span class="wallet-desc profile-word">'.$label.'</span>'.$note;
     }
 
     public function getTeamBonusTier()
