@@ -30,13 +30,23 @@ class LoginController extends Controller
     protected $redirectTo = '/';
 
     /**
+     * Guards tried in order for this shared login form. Merchant and Admin
+     * have their own dedicated login pages (/merchant_login, /admin_login),
+     * but Agent never got one, so it shares this Customer-facing /login
+     * page instead of being unable to log in at all.
+     *
+     * @var array<int, string>
+     */
+    protected $loginGuards = ['web', 'agent'];
+
+    /**
      * Create a new controller instance.
      *
      * @return void
      */
     public function __construct()
     {
-        
+
     }
 
     /**
@@ -54,6 +64,45 @@ class LoginController extends Controller
     }
 
     /**
+     * Try each guard in $loginGuards in turn until one accepts the
+     * credentials, instead of only ever checking the default ('web') guard.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return bool
+     */
+    protected function attemptLogin(Request $request)
+    {
+        $credentials = $this->credentials($request);
+
+        foreach ($this->loginGuards as $guardName) {
+            if (Auth::guard($guardName)->attempt($credentials, $request->boolean('remember'))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whichever of $loginGuards currently has an authenticated session -
+     * used both right after attemptLogin() succeeds, and later on logout
+     * (a separate request, where only the session state tells us which
+     * guard is active).
+     *
+     * @return \Illuminate\Contracts\Auth\Guard
+     */
+    protected function guard()
+    {
+        foreach ($this->loginGuards as $guardName) {
+            if (Auth::guard($guardName)->check()) {
+                return Auth::guard($guardName);
+            }
+        }
+
+        return Auth::guard('web');
+    }
+
+    /**
      * Immediately logout users whose status changed between login attempts.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -66,7 +115,7 @@ class LoginController extends Controller
             return;
         }
 
-        Auth::logout();
+        $this->guard()->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
