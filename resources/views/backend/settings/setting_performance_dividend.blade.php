@@ -142,7 +142,17 @@
 		});
 	}
 
+	var MAX_TIERS = 3;
+
+	function updateAddTierButtonState(){
+		$('.add-tier-btn').toggle($('.tier-rows .tier-row').length < MAX_TIERS);
+	}
+
 	function addTierRow(){
+		if($('.tier-rows .tier-row').length >= MAX_TIERS){
+			return;
+		}
+
 		var row = $('<div class="form-group container-box tier-row" data-tier-id="">\
 						<div class="row">\
 							<div class="col-sm-3">\
@@ -169,6 +179,7 @@
 
 		$('.tier-rows').append(row);
 		renumberTiers();
+		updateAddTierButtonState();
 	}
 
 	$('.add-tier-btn').click(function(e){
@@ -188,7 +199,10 @@
 		}
 		row.remove();
 		renumberTiers();
+		updateAddTierButtonState();
 	});
+
+	updateAddTierButtonState();
 
 	$('.save-tier-btn').click(function(e){
 		e.preventDefault();

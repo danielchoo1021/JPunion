@@ -515,7 +515,9 @@ class SettingController extends Controller
         }
 
         if(!empty($request->tier_target)){
-            foreach($request->tier_target as $key => $target){
+            // Max 3 tiers - the "Add Tier" button already stops at 3, this
+            // just makes sure a bypassed/hand-crafted submission can't add more.
+            foreach(array_slice($request->tier_target, 0, 3, true) as $key => $target){
                 if($target === null || $target === ''){
                     continue;
                 }
