@@ -210,11 +210,6 @@ Request::segment(1) == 'ForgetPassword')
                                         {{ isset($data['lang']['lang']['register']) ? $data['lang']['lang']['register'] :'Register' }}
                                     </a>
                                 </div>
-                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
-                                    <a href="{{ route('merchant_register') }}">
-                                        {{ isset($data['lang']['lang']['register_agent']) ? $data['lang']['lang']['register_agent'] :'Register Agent' }}
-                                    </a>
-                                </div>
                             </div>
                         @endif
                     </div>
@@ -280,11 +275,6 @@ Request::segment(1) == 'ForgetPassword')
                                 <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
                                     <a href="{{ route('register') }}">
                                         {{ isset($data['lang']['lang']['register']) ? $data['lang']['lang']['register'] :'Register' }}
-                                    </a>
-                                </div>
-                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
-                                    <a href="{{ route('merchant_register') }}">
-                                        {{ isset($data['lang']['lang']['register_agent']) ? $data['lang']['lang']['register_agent'] :'Register Agent' }}
                                     </a>
                                 </div>
                             </div>
