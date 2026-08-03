@@ -100,6 +100,9 @@
 					            <a href="javascript:void(0);" class="permission-control {{ isset($get_permission[$select->id]['cashier-screen']) && !empty($get_permission[$select->id]['cashier-screen']) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="cashier-screen">{{ isset($data['backendlang']['backendlang']['Cashier']) ? $data['backendlang']['backendlang']['Cashier'] :'' }}</a>
 					        </li>
 					        <li>
+					            <a href="javascript:void(0);" class="permission-control {{ isset($get_permission[$select->id]['user-permission-list']) && !empty($get_permission[$select->id]['user-permission-list']) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="user-permission-list">{{ isset($data['backendlang']['backendlang']['permission']) ? $data['backendlang']['backendlang']['permission'] :'' }}</a>
+					        </li>
+					        <li>
 					        	<a href="javascript:void(0);" class="permission-control parent" data-id="{{ $select->id }}" data-page="">{{ isset($data['backendlang']['backendlang']['userManage']) ? $data['backendlang']['backendlang']['userManage'] :'' }}</a>
 					        	<ul>
 					        		<li>

@@ -134,7 +134,7 @@
                 </li>
                 @endif
 
-                @if(Auth::guard('admin')->check())
+                @if(Auth::guard('admin')->check() && !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['user-permission-list']))
                     <li class="sidebar-item {{ (Request::segment(1) == 'user_permissions') ? 'active' : '' }}">
                         <a href="{{ route('user_permission.user_permissions.index') }}" class="sidebar-link">
                             <i class="bi bi-person-fill-gear"></i>
