@@ -210,7 +210,7 @@ class CategoryController extends Controller
         }
 
 
-        Toastr::success(($translation_data['backendlang']['backendlang']['Category'] ?? 'Category')  . ' ' . $category->category_name . ' ' . ($translation_data['backendlang']['backendlang']['Update_Successful'] ?? 'Update Successful'));
+        Toastr::success(($translation_data['backendlang']['backendlang']['Category'] ?? 'Category')  . ' ' . $category_name . ' ' . ($translation_data['backendlang']['backendlang']['Update_Successful'] ?? 'Update Successful'));
         return redirect()->route('category.categories.edit', $id);
     }
 
