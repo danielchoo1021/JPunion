@@ -38,6 +38,7 @@ use App\Exports\StockDetailExport;
 use App\Exports\StockExport;
 use App\Exports\AgentSalesExport;
 use App\Exports\SalesDetailsExport;
+use App\Exports\CustomerReferralBonusReportExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Validator, Redirect, Toastr, DB, File, Auth, DateTime;
 
@@ -2522,7 +2523,7 @@ class ReportController extends Controller
 
 
         $commissions = AffiliateCommission::select(DB::raw('COALESCE(COALESCE(CONCAT(m.f_name, " ", m.l_name), CONCAT(a.f_name, " ", a.l_name), u.f_name)) AS agentName'), 'al.agent_lvl',
-          DB::raw('COALESCE(COALESCE(m.code, a.code), u.code) AS agentCode'),
+          DB::raw('COALESCE(CONCAT(m.display_code, m.display_running_no), CONCAT(a.display_code, a.display_running_no), CONCAT(u.display_code, u.display_running_no), m.code, a.code, u.code) AS agentCode'),
           DB::raw('COALESCE(m.ic, a.ic) AS agentIC'), 
                                                   'affiliate_commissions.*', 't.id AS tID', 't.grand_total', 't.shipping_fee', 't.processing_fee', 't.discount',
                                                   't.created_at AS transaction_date', 't.user_id AS buyer', 
@@ -2530,7 +2531,7 @@ class ReportController extends Controller
                                                   'affiliate_commissions.product_qty', 
                                                   'affiliate_commissions.product_name',
                                                   DB::raw('COALESCE(COALESCE(CONCAT(mt.f_name, " ", mt.l_name), CONCAT(ut.f_name, " ", ut.l_name)), CONCAT(at.f_name, " ", at.l_name)) AS buyerName'),
-                                                  DB::raw('COALESCE(COALESCE(mt.code, ut.code), at.code) AS buyerCode'),
+                                                  DB::raw('COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), CONCAT(at.display_code, at.display_running_no), mt.code, ut.code, at.code) AS buyerCode'),
                                                   DB::raw('COALESCE(COALESCE(mt.ic, ut.ic), at.ic) AS buyerIC'),
                                                   'mb.f_name as from_user')
                                           ->leftJoin('agents AS m', 'm.code', 'affiliate_commissions.user_id')
@@ -2615,8 +2616,21 @@ class ReportController extends Controller
                             ", ['%' . request($column) . '%']);
                 }elseif($column == 'agent_code'){
 
-                    $commissions = $commissions->where(DB::raw('COALESCE(COALESCE(mt.code, ut.code), at.code)'), 'like', "%".request($column)."%");
-                    $totalCommission = $totalCommission->where(DB::raw('COALESCE(m.code, a.code)'), 'like', "%".request($column)."%");
+                    $downlineCodeTerm = '%'.request($column).'%';
+                    $commissions = $commissions->whereRaw("(
+                        COALESCE(CONCAT(mt.display_code, mt.display_running_no), '') LIKE ?
+                        OR COALESCE(CONCAT(ut.display_code, ut.display_running_no), '') LIKE ?
+                        OR COALESCE(CONCAT(at.display_code, at.display_running_no), '') LIKE ?
+                        OR mt.code LIKE ?
+                        OR ut.code LIKE ?
+                        OR at.code LIKE ?
+                    )", [$downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm]);
+                    $totalCommission = $totalCommission->whereRaw("(
+                        COALESCE(CONCAT(m.display_code, m.display_running_no), '') LIKE ?
+                        OR COALESCE(CONCAT(a.display_code, a.display_running_no), '') LIKE ?
+                        OR m.code LIKE ?
+                        OR a.code LIKE ?
+                    )", [$downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm]);
 
                 }elseif($column == 'agent_ic'){
 
@@ -2678,7 +2692,13 @@ class ReportController extends Controller
                         USING utf8mb4) COLLATE utf8mb4_unicode_ci LIKE ?
                     ", ['%' . request($column) . '%']);
                 }elseif($column == 'referrer_code'){
-                  $commissions = $commissions->where(DB::raw('COALESCE(m.code, a.code)'), 'like', "%".request($column)."%");
+                  $agentCodeTerm = '%'.request($column).'%';
+                  $commissions = $commissions->whereRaw("(
+                      COALESCE(CONCAT(m.display_code, m.display_running_no), '') LIKE ?
+                      OR COALESCE(CONCAT(a.display_code, a.display_running_no), '') LIKE ?
+                      OR m.code LIKE ?
+                      OR a.code LIKE ?
+                  )", [$agentCodeTerm, $agentCodeTerm, $agentCodeTerm, $agentCodeTerm]);
                 }elseif($column == 'referrer_ic'){
                   $commissions = $commissions->where(DB::raw('COALESCE(m.ic, a.ic)'), 'like', "%".request($column)."%");
                 }elseif($column == 'this_month'){
@@ -2771,7 +2791,7 @@ class ReportController extends Controller
         }
 
         $commissions = AffiliateCommission::select(DB::raw('COALESCE(COALESCE(CONCAT(m.f_name, " ", m.l_name), CONCAT(a.f_name, " ", a.l_name), u.f_name)) AS agentName'), 'al.agent_lvl',
-          DB::raw('COALESCE(COALESCE(m.code, a.code), u.code) AS agentCode'),
+          DB::raw('COALESCE(CONCAT(m.display_code, m.display_running_no), CONCAT(a.display_code, a.display_running_no), CONCAT(u.display_code, u.display_running_no), m.code, a.code, u.code) AS agentCode'),
           DB::raw('COALESCE(m.ic, a.ic) AS agentIC'), 
                                                   'affiliate_commissions.*', 't.id AS tID', 't.grand_total', 't.shipping_fee', 't.processing_fee', 't.discount',
                                                   't.created_at AS transaction_date', 't.user_id AS buyer', 
@@ -2779,7 +2799,7 @@ class ReportController extends Controller
                                                   'affiliate_commissions.product_qty', 
                                                   'affiliate_commissions.product_name',
                                                   DB::raw('COALESCE(COALESCE(CONCAT(mt.f_name, " ", mt.l_name), CONCAT(ut.f_name, " ", ut.l_name)), CONCAT(at.f_name, " ", at.l_name)) AS buyerName'),
-                                                  DB::raw('COALESCE(COALESCE(mt.code, ut.code), at.code) AS buyerCode'),
+                                                  DB::raw('COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), CONCAT(at.display_code, at.display_running_no), mt.code, ut.code, at.code) AS buyerCode'),
                                                   DB::raw('COALESCE(COALESCE(mt.ic, ut.ic), at.ic) AS buyerIC'),
                                                   'mb.f_name as from_user')
                                           ->leftJoin('agents AS m', 'm.code', 'affiliate_commissions.user_id')
@@ -2883,8 +2903,21 @@ class ReportController extends Controller
                             ", ['%' . request($column) . '%']);
                 }elseif($column == 'agent_code'){
 
-                    $commissions = $commissions->where(DB::raw('COALESCE(COALESCE(mt.code, ut.code), at.code)'), 'like', "%".request($column)."%");
-                    $totalCommission = $totalCommission->where(DB::raw('COALESCE(m.code, a.code)'), 'like', "%".request($column)."%");
+                    $downlineCodeTerm = '%'.request($column).'%';
+                    $commissions = $commissions->whereRaw("(
+                        COALESCE(CONCAT(mt.display_code, mt.display_running_no), '') LIKE ?
+                        OR COALESCE(CONCAT(ut.display_code, ut.display_running_no), '') LIKE ?
+                        OR COALESCE(CONCAT(at.display_code, at.display_running_no), '') LIKE ?
+                        OR mt.code LIKE ?
+                        OR ut.code LIKE ?
+                        OR at.code LIKE ?
+                    )", [$downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm]);
+                    $totalCommission = $totalCommission->whereRaw("(
+                        COALESCE(CONCAT(m.display_code, m.display_running_no), '') LIKE ?
+                        OR COALESCE(CONCAT(a.display_code, a.display_running_no), '') LIKE ?
+                        OR m.code LIKE ?
+                        OR a.code LIKE ?
+                    )", [$downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm, $downlineCodeTerm]);
 
                 }elseif($column == 'referrer_name'){
                     $commissions = $commissions->whereRaw("
@@ -2896,7 +2929,13 @@ class ReportController extends Controller
                         USING utf8mb4) COLLATE utf8mb4_unicode_ci LIKE ?
                     ", ['%' . request($column) . '%']);
                 }elseif($column == 'referrer_code'){
-                  $commissions = $commissions->where(DB::raw('COALESCE(m.code, a.code)'), 'like', "%".request($column)."%");
+                  $agentCodeTerm = '%'.request($column).'%';
+                  $commissions = $commissions->whereRaw("(
+                      COALESCE(CONCAT(m.display_code, m.display_running_no), '') LIKE ?
+                      OR COALESCE(CONCAT(a.display_code, a.display_running_no), '') LIKE ?
+                      OR m.code LIKE ?
+                      OR a.code LIKE ?
+                  )", [$agentCodeTerm, $agentCodeTerm, $agentCodeTerm, $agentCodeTerm]);
                 }elseif($column == 'comm_type'){
                     $commissions = $commissions->where('affiliate_commissions.comm_desc', 'like', "%".request($column)."%");
                 }else{
@@ -4463,6 +4502,40 @@ class ReportController extends Controller
 
         return Excel::download(new AgentSalesExport($start, $end, $agent, $code, $referrer_code, $referrer_name), 'AgentSalesReport'.$start.' - '.$end.'.xlsx');
     }
+
+    public function customer_referral_bonus_report()
+    {
+        $agent_code = request('agent_code');
+        $agent_name = request('agent_name');
+        $customer_code = request('customer_code');
+        $customer_name = request('customer_name');
+        $claimed = request('claimed');
+        $per_page = !empty(request('per_page')) ? request('per_page') : 10;
+
+        $queries = [];
+        foreach(['agent_code','agent_name','customer_code','customer_name','claimed','per_page'] as $column){
+            if(request()->has($column) && request($column) !== null && request($column) !== ''){
+                $queries[$column] = request($column);
+            }
+        }
+
+        $progress = GlobalController::customer_referral_bonus_progress_query($agent_code, $agent_name, $customer_code, $customer_name, $claimed)
+                        ->paginate($per_page)->appends($queries);
+
+        foreach($progress as $row){
+            $row->paid_order_count = Transaction::where('user_id', $row->customer_code)->where('status', '1')->count();
+        }
+
+        return view('backend.reports.customer_referral_bonus_report', compact('progress', 'agent_code', 'agent_name', 'customer_code', 'customer_name', 'claimed'));
+    }
+
+    public function exportCustomerReferralBonusReport()
+    {
+        return Excel::download(new CustomerReferralBonusReportExport(
+            request('agent_code'), request('agent_name'), request('customer_code'), request('customer_name'), request('claimed')
+        ), 'CustomerReferralBonusReport.xlsx');
+    }
+
     public function print_agent_sales_report()
     {
           if(!empty(request('dates'))){

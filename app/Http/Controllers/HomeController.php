@@ -884,6 +884,11 @@ class HomeController extends Controller
                     if ($heirarchy_commission != 'ok') {
                         throw new \Exception($heirarchy_commission);
                     }
+
+                    $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+                    if ($customer_referral_bonus != 'ok') {
+                        throw new \Exception($customer_referral_bonus);
+                    }
                 }
             }
 
@@ -2771,7 +2776,8 @@ class HomeController extends Controller
                                                            't.discount',
                                                             DB::raw('t.grand_total AS Gtotal'),
                                                             DB::raw('COALESCE(m.f_name, a.f_name) as username'),
-                                                            DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'))
+                                                            DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'),
+                                                            DB::raw("COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), mt.code, ut.code) as buyerCode"))
                                                             ->leftJoin('transactions AS t', 't.transaction_no', 'affiliate_commissions.transaction_no')
                                                             ->leftJoin('agents as m', 'm.code', 'affiliate_commissions.user_id')
                                                             ->leftJoin('admins as a', 'a.code', 'affiliate_commissions.user_id')
@@ -2820,7 +2826,8 @@ class HomeController extends Controller
                         $all = AffiliateCommission::select('affiliate_commissions.*', 't.shipping_fee', 't.processing_fee', 't.discount', 
                                                    't.grand_total AS Gtotal',
                                                    DB::raw('COALESCE(m.f_name, a.f_name) as username'),
-                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'))
+                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'),
+                                                            DB::raw("COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), mt.code, ut.code) as buyerCode"))
                                           ->leftJoin('transactions AS t', 't.transaction_no', 'affiliate_commissions.transaction_no')
                                           ->leftJoin('agents as m', 'm.code', 'affiliate_commissions.user_id')
                                           ->leftJoin('admins as a', 'a.code', 'affiliate_commissions.user_id')
@@ -2836,7 +2843,8 @@ class HomeController extends Controller
                         $all = AffiliateCommission::select('affiliate_commissions.*', 't.shipping_fee', 't.processing_fee', 't.discount', 
                                                    't.grand_total AS Gtotal',
                                                    DB::raw('COALESCE(m.f_name, a.f_name) as username'),
-                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'))
+                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'),
+                                                            DB::raw("COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), mt.code, ut.code) as buyerCode"))
                                           ->leftJoin('transactions AS t', 't.transaction_no', 'affiliate_commissions.transaction_no')
                                           ->leftJoin('agents as m', 'm.code', 'affiliate_commissions.user_id')
                                           ->leftJoin('admins as a', 'a.code', 'affiliate_commissions.user_id')
@@ -2852,7 +2860,8 @@ class HomeController extends Controller
                         $all = AffiliateCommission::select('affiliate_commissions.*', 't.shipping_fee', 't.processing_fee', 't.discount', 
                                                    't.grand_total AS Gtotal',
                                                    DB::raw('COALESCE(m.f_name, a.f_name) as username'),
-                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'))
+                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'),
+                                                            DB::raw("COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), mt.code, ut.code) as buyerCode"))
                                           ->leftJoin('transactions AS t', 't.transaction_no', 'affiliate_commissions.transaction_no')
                                           ->leftJoin('agents as m', 'm.code', 'affiliate_commissions.user_id')
                                           ->leftJoin('admins as a', 'a.code', 'affiliate_commissions.user_id')
@@ -2870,7 +2879,8 @@ class HomeController extends Controller
                         $all = AffiliateCommission::select('affiliate_commissions.*', 't.shipping_fee', 't.processing_fee', 't.discount', 
                                                    't.grand_total AS Gtotal',
                                                    DB::raw('COALESCE(m.f_name, a.f_name) as username'),
-                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'))
+                                                   DB::raw('COALESCE(mt.f_name, ut.f_name) as buyer'),
+                                                            DB::raw("COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), mt.code, ut.code) as buyerCode"))
                                           ->leftJoin('transactions AS t', 't.transaction_no', 'affiliate_commissions.transaction_no')
                                           ->leftJoin('agents as m', 'm.code', 'affiliate_commissions.user_id')
                                           ->leftJoin('admins as a', 'a.code', 'affiliate_commissions.user_id')
@@ -2977,7 +2987,8 @@ class HomeController extends Controller
 
         $perPage = request('per_page', 10);
 
-                $transactions = Transaction::select('transactions.*')
+                $transactions = Transaction::select('transactions.*',
+                                                                     DB::raw("COALESCE(CONCAT(m.display_code, m.display_running_no), CONCAT(u.display_code, u.display_running_no), transactions.user_id) as buyerDisplayCode"))
                                                                      ->leftJoin('users as u', 'u.code', 'transactions.user_id')
                                                                      ->leftJoin('agents as m', 'm.code', 'transactions.user_id');
 
@@ -3011,6 +3022,12 @@ class HomeController extends Controller
                     $transactions = $transactions->where('transactions.transaction_no', 'like', '%'.request('transaction_no').'%');
                 }
 
+                $summaryRow = (clone $transactions)
+                                    ->select(DB::raw('COUNT(*) as total_count'), DB::raw('COALESCE(SUM(transactions.grand_total - transactions.shipping_fee), 0) as total_net_sales'))
+                                    ->first();
+                $totalCount = $summaryRow->total_count ?? 0;
+                $totalNetSales = $summaryRow->total_net_sales ?? 0;
+
                 $transactions = $transactions->orderBy('transactions.created_at', 'desc')
                                                                          ->paginate($perPage)
                                                                          ->appends(request()->all());
@@ -3027,6 +3044,8 @@ class HomeController extends Controller
             'transactions' => $transactions,
             'startDate' => $startDate,
             'endDate' => $endDate,
+            'totalCount' => $totalCount,
+            'totalNetSales' => $totalNetSales,
         ], compact('details'));
     }
 
@@ -7085,6 +7104,11 @@ class HomeController extends Controller
                     throw new \Exception($heirarchy_commission);
                 }
 
+                $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+                if($customer_referral_bonus != 'ok'){
+                    throw new \Exception($customer_referral_bonus);
+                }
+
                 $purchase_from_customer_deduct_stock_commission = GlobalController::purchase_from_customer_deduct_stock_commission($transaction->transaction_no);
                 if($purchase_from_customer_deduct_stock_commission != 'ok'){
                     throw new \Exception($purchase_from_customer_deduct_stock_commission);
@@ -7539,6 +7563,11 @@ class HomeController extends Controller
                         throw new \Exception($heirarchy_commission);
                     }
 
+                    $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+                    if($customer_referral_bonus != 'ok'){
+                        throw new \Exception($customer_referral_bonus);
+                    }
+
                     $purchase_from_customer_deduct_stock_commission = GlobalController::purchase_from_customer_deduct_stock_commission($transaction->transaction_no);
                     if($purchase_from_customer_deduct_stock_commission != 'ok'){
                         throw new \Exception($purchase_from_customer_deduct_stock_commission);
@@ -7607,6 +7636,11 @@ class HomeController extends Controller
                     $heirarchy_commission = GlobalController::heirarchy_commission($transaction->user_id, $transaction->transaction_no);
                     if($heirarchy_commission != 'ok'){
                         throw new \Exception($heirarchy_commission);
+                    }
+
+                    $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+                    if($customer_referral_bonus != 'ok'){
+                        throw new \Exception($customer_referral_bonus);
                     }
 
                     $purchase_from_customer_deduct_stock_commission = GlobalController::purchase_from_customer_deduct_stock_commission($transaction->transaction_no);
@@ -7718,6 +7752,11 @@ class HomeController extends Controller
                         if ($heirarchy_commission != 'ok') {
                         throw new \Exception($heirarchy_commission);
                         }
+
+                        $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+                        if ($customer_referral_bonus != 'ok') {
+                        throw new \Exception($customer_referral_bonus);
+                        }
                     }
 
                     $purchase_from_customer_deduct_stock_commission = GlobalController::purchase_from_customer_deduct_stock_commission($transaction->transaction_no);
@@ -7795,6 +7834,11 @@ class HomeController extends Controller
                         $heirarchy_commission = GlobalController::heirarchy_commission($transaction->user_id, $transaction->transaction_no);
                         if ($heirarchy_commission != 'ok') {
                         throw new \Exception($heirarchy_commission);
+                        }
+
+                        $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+                        if ($customer_referral_bonus != 'ok') {
+                        throw new \Exception($customer_referral_bonus);
                         }
                     }
 
@@ -8534,47 +8578,26 @@ class HomeController extends Controller
         return redirect()->back();
     }
 
+    /**
+     * "View" button on the frontend Sales page - renders the same Invoice
+     * (A4) PDF the auto-print pipeline and the backend Transaction List's
+     * "Print Invoice A4" use (see OrderPrintService), streamed inline so it
+     * opens as a preview in the browser instead of forcing a download. The
+     * old bespoke view('frontend.invoice') is left in place, just no longer
+     * wired to this button, in case it's needed again (same reasoning as
+     * download_invoice() below, which made the same switch).
+     */
     public function customer_invoice($transaction_no)
     {
-        $transaction = Transaction::select('transactions.*',
-                                           'ca.address as ca_address', 'ca.address_desc as ca_address_desc')
-                                  ->leftJoin('cod_addresses AS ca', 'ca.id', 'transactions.cod_address')
-                                  ->where('transactions.transaction_no', $transaction_no)
-                                  ->first();
+        $transaction = Transaction::where('transaction_no', $transaction_no)->first();
 
         if(empty($transaction->id)){
             abort(404);
         }
 
-        $bank_online = Bank::find($transaction->bank_id);
-        $bank_cdm = Bank::where('bank_code', $transaction->cdm_bank_id)->first();
+        $pdf = (new \App\Services\OrderPrintService())->renderDocument($transaction, 'invoice_a4');
 
-        $details = TransactionDetail::select('transaction_details.*', 'transaction_details.quantity as t_qty', 'u.uom_name', 'u.uom_en', 'p.packages')
-                                    ->join('products AS p', 'p.id', 'transaction_details.product_id')
-                                    ->leftJoin('setting_uoms AS u', 'u.id', 'p.product_type')
-                                    ->where('transaction_id', $transaction->id)
-                                    ->get();
-
-        $setting_pickup = SettingPickUpAddress::first();
-
-        $pickup_state = State::find($setting_pickup->state);
-        $delivery_state = State::find($transaction->state);
-
-        $delivery_country = TblCountry::where('country_id', $transaction->country)->first();
-
-        $bill_address = TransactionBillingAddress::select('transaction_billing_addresses.*', 's.name as NameOfState', 'tc.country_name')
-                                                 ->leftJoin('states as s', 's.id', 'transaction_billing_addresses.state')
-                                                 ->leftJoin('tbl_countries as tc', 'tc.country_id', 'transaction_billing_addresses.country')
-                                                 ->where('transaction_id', $transaction->id)
-                                                 ->first();
-
-        return view('frontend.invoice', ['transaction'=>$transaction, 
-                                         'details'=>$details, 
-                                         'setting_pickup'=>$setting_pickup, 
-                                         'pickup_state'=>$pickup_state, 
-                                         'delivery_state'=>$delivery_state,
-                                         'delivery_country'=>$delivery_country,
-                                         'bill_address'=>$bill_address]);
+        return $pdf->stream($transaction_no.'.pdf');
     }
 
     /**

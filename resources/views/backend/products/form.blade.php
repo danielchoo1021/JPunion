@@ -280,7 +280,7 @@ if(isset($product)){
 					@endif
 
 					<div class="form-group">
-						<h4 style="text-decoration: underline;">{{ isset($data['backendlang']['backendlang']['Retail']) ? $data['backendlang']['backendlang']['Retail'] :'' }}</h4>
+						<h4 style="text-decoration: underline;">{{ isset($data['backendlang']['backendlang']['Member']) ? $data['backendlang']['backendlang']['Member'] :'' }}</h4>
 						<div class="row">
 							<div class="col-sm-6">
 								<div class="row">

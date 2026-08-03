@@ -927,6 +927,11 @@ class TransactionController extends Controller
                 if ($heirarchy_commission != 'ok') {
                     throw new \Exception($heirarchy_commission);
                 }
+
+                $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+                if ($customer_referral_bonus != 'ok') {
+                    throw new \Exception($customer_referral_bonus);
+                }
             }
 
             $purchase_from_customer_deduct_stock_commission = GlobalController::purchase_from_customer_deduct_stock_commission($transaction->transaction_no);

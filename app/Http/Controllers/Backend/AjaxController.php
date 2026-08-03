@@ -711,6 +711,11 @@ class AjaxController extends Controller
               if ($heirarchy_commission != 'ok') {
                 throw new \Exception($heirarchy_commission);
               }
+
+              $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+              if ($customer_referral_bonus != 'ok') {
+                throw new \Exception($customer_referral_bonus);
+              }
             }
 
             $transaction->status = 1;
@@ -1352,6 +1357,11 @@ class AjaxController extends Controller
             $heirarchy_commission = GlobalController::heirarchy_commission($transaction->user_id, $transaction->transaction_no);
             if ($heirarchy_commission != 'ok') {
               throw new \Exception($heirarchy_commission);
+            }
+
+            $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+            if ($customer_referral_bonus != 'ok') {
+              throw new \Exception($customer_referral_bonus);
             }
           }
 
@@ -5667,6 +5677,11 @@ class AjaxController extends Controller
           $heirarchy_commission = GlobalController::heirarchy_commission($transaction->user_id, $transaction->transaction_no);
           if ($heirarchy_commission != 'ok') {
             throw new \Exception($heirarchy_commission);
+          }
+
+          $customer_referral_bonus = GlobalController::customer_referral_bonus($transaction->user_id, $transaction->transaction_no);
+          if ($customer_referral_bonus != 'ok') {
+            throw new \Exception($customer_referral_bonus);
           }
         }
 

@@ -3,6 +3,15 @@
 <!-- Simple daterangepicker includes (CDN) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
+@section('css')
+<style>
+    .sales-table td, .sales-table th {
+        padding: 6px 10px;
+        vertical-align: middle;
+    }
+</style>
+@endsection
+
 @section('content')
 
 @include('partial.frontend.profile_header')
@@ -53,7 +62,7 @@
             </form>
             @if(isset($transactions) && !$transactions->isEmpty())
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-striped sales-table">
                     <thead>
                         <tr class="info">
                             <th>#</th>
@@ -63,7 +72,7 @@
                             <th>{{ isset($data['lang']['lang']['items']) ? $data['lang']['lang']['items'] :'' }}</th>
                             <th>{{ isset($data['lang']['lang']['total']) ? $data['lang']['lang']['total'] :'' }} (RM)</th>
                             <th>{{ isset($data['lang']['lang']['status']) ? $data['lang']['lang']['status'] :'' }}</th>
-                            <!-- <th style="width: 160px;">Actions</th> -->
+                            <th style="width: 160px;">{{ isset($data['lang']['lang']['Actions']) ? $data['lang']['lang']['Actions'] :'Actions' }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -72,9 +81,9 @@
                             <td>{{ ($transactions->currentPage()-1)*$transactions->perPage() + $index + 1 }}</td>
                             <td>{{ $transaction->transaction_no }}</td>
                             <td>{{ $transaction->created_at }}</td>
-                            <td>{{ $transaction->user_id }}</td>
+                            <td>{{ $transaction->buyerDisplayCode }}</td>
                             <td>{{ isset($details[$transaction->id]) ? count($details[$transaction->id]) : 0 }}</td>
-                            <td>{{ number_format($transaction->grand_total, 2) }}</td>
+                            <td>{{ number_format($transaction->grand_total - $transaction->shipping_fee, 2) }}</td>
                             <td>
                                 @if($transaction->status == 99)
                                     <span class="badge badge-pill bg-warning">{{ isset($data['lang']['lang']['unpaid']) ? $data['lang']['lang']['unpaid'] :'' }}</span>
@@ -86,10 +95,10 @@
                                     <span class="badge badge-pill bg-danger">{{ isset($data['lang']['lang']['cancelled']) ? $data['lang']['lang']['cancelled'] :'' }}</span>
                                 @endif
                             </td>
-                            <!-- <td>
-                                <a href="{{ route('customer_invoice', $transaction->transaction_no) }}" class="btn btn-sm btn-primary">View</a>
-                                <a href="{{ route('download_invoice', $transaction->transaction_no) }}" class="btn btn-sm btn-outline-primary">PDF</a>
-                            </td> -->
+                            <td>
+                                <a href="{{ route('customer_invoice', $transaction->transaction_no) }}" target="_blank" class="btn btn-sm btn-primary">{{ isset($data['lang']['lang']['View']) ? $data['lang']['lang']['View'] :'View' }}</a>
+                                <a href="{{ route('download_invoice', $transaction->transaction_no) }}" target="_blank" class="btn btn-sm btn-outline-primary">PDF</a>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -99,6 +108,18 @@
             <div class="form-group d-flex justify-content-between align-items-center">
                 <div>
                     {{ $transactions->appends(request()->all())->links() }}
+                </div>
+            </div>
+
+            <div class="form-group container-box" style="background-color: #f8f9fa;">
+                <h5>{{ isset($data['lang']['lang']['Summary']) ? $data['lang']['lang']['Summary'] :'Summary' }}</h5>
+                <div class="row">
+                    <div class="col-sm-6">
+                        {{ isset($data['lang']['lang']['Total_Transactions']) ? $data['lang']['lang']['Total_Transactions'] :'Total Transactions' }}: <b>{{ $totalCount }}</b>
+                    </div>
+                    <div class="col-sm-6">
+                        {{ isset($data['lang']['lang']['total']) ? $data['lang']['lang']['total'] :'Total' }} (RM): <b>{{ number_format($totalNetSales, 2) }}</b>
+                    </div>
                 </div>
             </div>
             @else

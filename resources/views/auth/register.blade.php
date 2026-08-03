@@ -227,10 +227,6 @@
                     <div class="form-group" align="center">
                         {{ isset($data['lang']['lang']['already_have_account']) ? $data['lang']['lang']['already_have_account'] :'已有帐号'}}? <a href="{{ route('login') }}">{{ isset($data['lang']['lang']['login']) ? $data['lang']['lang']['login'] :'登录'}}</a>
                     </div>
-
-                    <div class="form-group" align="center">
-                        {{ isset($data['lang']['lang']['be_an_agent']) ? $data['lang']['lang']['be_an_agent'] :'代理注册'}}? <a href="{{ route('merchant_register') }}">{{ isset($data['lang']['lang']['register_as_agent']) ? $data['lang']['lang']['register_as_agent'] :'注册为代理'}}</a>
-                    </div>
                 </div>
             </form>
         </div>

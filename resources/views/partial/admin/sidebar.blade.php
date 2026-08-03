@@ -517,7 +517,8 @@
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['point-order-report']) || 
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['commission-report']) || 
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['stock-report']) || 
-                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['agent-report']))
+                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['agent-report']) ||
+                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['customer-referral-bonus-report']))
                     <li class="sidebar-item has-sub
                                {{ (Request::segment(1) == 'agent_stock_report' ||
                                    Request::segment(1) == 'sales_report' ||
@@ -530,7 +531,8 @@
                                    Request::segment(1) == 'stock_report' ||
                                    Request::segment(1) == 'stock_report_details' ||
                                    Request::segment(1) == 'agent_sales_report' ||
-                                   Request::segment(1) == 'agent_sales_report_detail') ? 'active' : '' }}">
+                                   Request::segment(1) == 'agent_sales_report_detail' ||
+                                   Request::segment(1) == 'customer_referral_bonus_report') ? 'active' : '' }}">
                         <a href="#" class="sidebar-link">
                             <i class="bi bi-clipboard-data"></i>
                             <span> {{ isset($data['backendlang']['backendlang']['report_manage']) ? $data['backendlang']['backendlang']['report_manage'] : ''  }}</span>
@@ -602,6 +604,14 @@
                                 </a>
                             </li>
                             @endif
+
+                            @if(!empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['customer-referral-bonus-report']))
+                            <li class="submenu-item {{ (Request::segment(1) == 'customer_referral_bonus_report') ? 'active' : '' }}">
+                                <a href="{{ route('customer_referral_bonus_report') }}" class="submenu-link">
+                                     {{ isset($data['backendlang']['backendlang']['Customer_Referral_Bonus_Report']) ? $data['backendlang']['backendlang']['Customer_Referral_Bonus_Report'] : ''  }}
+                                </a>
+                            </li>
+                            @endif
                         </ul>
                     </li>
                 @endif
@@ -609,8 +619,9 @@
                 @if(!empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['agent-lvl-list']) || 
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['agent-order-rebate-list']) || 
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['hierarchy-bonus-list']) || 
-                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['referral-reward-list']) || 
-                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['performance-reward-list']) || 
+                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['referral-reward-list']) ||
+                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['customer-referral-bonus-list']) ||
+                    !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['performance-reward-list']) ||
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['team-reward-list']) || 
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['prize-pool-list']) || 
                     !empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['topup-bonus-list']))
@@ -619,6 +630,7 @@
                                    Request::segment(1) == 'setting_agent_rebate' ||
                                    Request::segment(1) == 'setting_merchant_commission' ||
                                    Request::segment(1) == 'setting_recommend_bonus' ||
+                                   Request::segment(1) == 'setting_customer_referral_bonus' ||
                                    Request::segment(1) == 'setting_performance_dividend' ||
                                    Request::segment(1) == 'setting_team_dividend' ||
                                    Request::segment(1) == 'setting_prize_pool' ||
@@ -658,6 +670,14 @@
                             <li class="submenu-item {{ (Request::segment(1) == 'setting_recommend_bonus') ? 'active' : '' }}">
                                 <a href="{{ route('setting_recommend_bonus') }}" class="submenu-link">
                                    {{ isset($data['backendlang']['backendlang']['Referral_Reward']) ? $data['backendlang']['backendlang']['Referral_Reward'] : ''  }}
+                                </a>
+                            </li>
+                            @endif
+
+                            @if(!empty($data['permission']['permission'][Auth::guard($data['userGuardRole'])->user()->permission_lvl]['customer-referral-bonus-list']))
+                            <li class="submenu-item {{ (Request::segment(1) == 'setting_customer_referral_bonus') ? 'active' : '' }}">
+                                <a href="{{ route('setting_customer_referral_bonus') }}" class="submenu-link">
+                                   {{ isset($data['backendlang']['backendlang']['Customer_Referral_Bonus']) ? $data['backendlang']['backendlang']['Customer_Referral_Bonus'] : ''  }}
                                 </a>
                             </li>
                             @endif

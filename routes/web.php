@@ -513,6 +513,8 @@ Route::group(['middleware' => 'auth:admin,merchant,staff'], function () {
 
 	Route::get('setting_recommend_bonus', 'Backend\SettingController@setting_recommend_bonus')->name('setting_recommend_bonus');
 	Route::post('save_setting_recommend_bonus', 'Backend\SettingController@save_setting_recommend_bonus')->name('save_setting_recommend_bonus');
+	Route::get('setting_customer_referral_bonus', 'Backend\SettingController@setting_customer_referral_bonus')->name('setting_customer_referral_bonus');
+	Route::post('save_setting_customer_referral_bonus', 'Backend\SettingController@save_setting_customer_referral_bonus')->name('save_setting_customer_referral_bonus');
 
 	Route::get('setting_dual_commission', 'Backend\SettingController@setting_dual_commission')->name('setting_dual_commission');
 	Route::post('save_setting_dual_commission', 'Backend\SettingController@save_setting_dual_commission')->name('save_setting_dual_commission');
@@ -576,6 +578,7 @@ Route::group(['middleware' => 'auth:admin,merchant,staff'], function () {
 	Route::get('agent_sales_report_detail/{code}','Backend\ReportController@agent_sales_report_detail')->name('agent_sales_report_detail');
 	Route::get('print_agent_sales_report', 'Backend\ReportController@print_agent_sales_report')->name('print_agent_sales_report');
 	Route::get('print_agent_sales_report_detail/{code}', 'Backend\ReportController@print_agent_sales_report_detail')->name('print_agent_sales_report_detail');
+	Route::get('customer_referral_bonus_report', 'Backend\ReportController@customer_referral_bonus_report')->name('customer_referral_bonus_report');
 
 	Route::get('redemption_report', 'Backend\ReportController@redemption_report')->name('redemption_report');
 	Route::get('print_redemption_report', 'Backend\ReportController@print_redemption_report')->name('print_redemption_report');
@@ -619,6 +622,7 @@ Route::group(['middleware' => 'auth:admin,merchant,staff'], function () {
 	Route::get('exportTopupWalletReport', 'Backend\ReportController@exportTopupWalletReport')->name('exportTopupWalletReport');
 	Route::get('exportCashWalletReport', 'Backend\ReportController@exportCashWalletReport')->name('exportCashWalletReport');
 	Route::get('exportAgentReport', 'Backend\ReportController@exportAgentReport')->name('exportAgentReport');
+	Route::get('exportCustomerReferralBonusReport', 'Backend\ReportController@exportCustomerReferralBonusReport')->name('exportCustomerReferralBonusReport');
 	Route::get('exportAgentList', 'Backend\AgentController@exportAgentList')->name('exportAgentList');
 	Route::get('exportWithdrawalReport', 'Backend\TransactionController@exportWithdrawalReport')->name('exportWithdrawalReport');
 	Route::get('exportTransaction', 'Backend\TransactionController@exportTransaction')->name('exportTransaction');

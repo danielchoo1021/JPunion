@@ -33,6 +33,7 @@ use App\WebsiteSetting;
 use App\SettingPrizePool;
 use App\SettingTeamDividend;
 use App\SettingRefferalReward;
+use App\SettingCustomerReferralBonus;
 use App\SettingMerchantRebate;
 use App\SettingMerchantCommission;
 use App\TopupTransaction;
@@ -2991,6 +2992,138 @@ class GlobalController extends Controller
         }
     }
 
+    public static function customer_referral_bonus($code, $no)
+    {
+        try{
+            \DB::beginTransaction();
+
+            // $code is $transaction->user_id, which can be a Customer OR an
+            // Agent/Merchant self-order via the backend. Only Customers qualify.
+            $customer = User::where('code', $code)->first();
+            if(empty($customer->id) || !empty($customer->customer_referral_bonus_claimed)){
+                \DB::commit();
+                return "ok";
+            }
+
+            // Direct upline of this customer. Use master_id (the single
+            // authoritative field) rather than the affiliates pivot table -
+            // that table can accumulate stale duplicate sort_level=1 rows
+            // (e.g. when a customer gets re-linked to a different recruiter
+            // without the old row being cleaned up), and ->first() with no
+            // ordering would then non-deterministically pick a stale one.
+            $agent = !empty($customer->master_id) ? Agent::where('code', $customer->master_id)->where('status', '1')->first() : null;
+            if(empty($agent->id)){
+                \DB::commit();
+                return "ok"; // recruiter wasn't an Agent (Customer/Merchant/Admin root) - no bonus
+            }
+
+            $setting = SettingCustomerReferralBonus::where('agent_lvl', $agent->lvl)->first();
+            if(empty($setting->amount) || empty($setting->target_orders)){
+                \DB::commit();
+                return "ok"; // not configured for this Agent level
+            }
+
+            // Some call sites (e.g. Backend\AjaxController::change_transaction_action)
+            // set $transaction->status = 1 in memory but only ->save() it AFTER
+            // calling this function, so this transaction may not be persisted as
+            // Paid yet at count time - always count it explicitly by transaction_no
+            // so a customer's threshold-reaching order isn't missed by one.
+            $paidOrderCount = Transaction::where('user_id', $customer->code)
+                                          ->where(function($q) use ($no){
+                                              $q->where('status', '1')->orWhere('transaction_no', $no);
+                                          })
+                                          ->count();
+            if($paidOrderCount < $setting->target_orders){
+                \DB::commit();
+                return "ok";
+            }
+
+            $upline_level = GlobalController::get_lvl_detail($agent->lvl);
+            $upline_level_cn = GlobalController::get_lvl_detail($agent->lvl, 1);
+
+            $commission = new AffiliateCommission();
+
+            $authorise_merchant = !empty($_COOKIE['vmerchant']) ? $_COOKIE['vmerchant'] : '';
+            $get_authorise_status = GlobalController::check_autorize_status($authorise_merchant);
+            if($get_authorise_status['status'] == 1){
+                $commission->merchant_id = !empty($get_authorise_status['result']['code']) ? $get_authorise_status['result']['code'] : '';
+            }
+
+            $commission->type = 11;
+            $commission->user_id = $agent->code;
+            $commission->user_by = $customer->code;
+            $commission->transaction_no = $no;
+            $commission->product_amount = $setting->amount;
+            $commission->comm_pa_type = "Amount";
+            $commission->comm_pa = $setting->amount;
+            $commission->comm_amount = $setting->amount;
+            $customerDisplayCode = !empty($customer->display_code) ? $customer->display_code.$customer->display_running_no : $customer->code;
+            $commission->comm_desc = "Customer Referral Bonus: ".$customerDisplayCode." reached ".$setting->target_orders." paid orders (".$upline_level.")";
+            $commission->comm_desc_cn = "客户推荐奖金: ".$customerDisplayCode." 达到 ".$setting->target_orders." 笔已付款订单 (".$upline_level_cn.")";
+            $commission->status = "1";
+            $commission->save();
+
+            $customer->customer_referral_bonus_claimed = 1;
+            $customer->save();
+
+            \DB::commit();
+
+            return "ok";
+
+        }catch (\Exception $e){
+            \DB::rollback();
+            return $e->getMessage().' - '.$e->getLine();
+        }catch(\Error $e){
+            \DB::rollback();
+            return $e->getMessage().' - '.$e->getLine();
+        }
+    }
+
+    public static function customer_referral_bonus_progress_query($agent_code = null, $agent_name = null, $customer_code = null, $customer_name = null, $claimed = null)
+    {
+        $query = User::select(
+                'users.code as customer_code',
+                'users.f_name as customer_f_name',
+                'users.l_name as customer_l_name',
+                'users.display_code as customer_display_code',
+                'users.display_running_no as customer_display_running_no',
+                'users.customer_referral_bonus_claimed',
+                'agents.code as agent_code',
+                'agents.f_name as agent_f_name',
+                'agents.l_name as agent_l_name',
+                'agents.display_code as agent_display_code',
+                'agents.display_running_no as agent_display_running_no',
+                'l.agent_lvl as agent_lvl_name',
+                'l.agent_lvl_cn as agent_lvl_name_cn',
+                'setting.target_orders',
+                'setting.amount as bonus_amount'
+            )
+            ->join('agents', 'agents.code', '=', 'users.master_id')
+            ->leftJoin('agent_levels as l', 'l.id', '=', 'agents.lvl')
+            ->leftJoin('setting_customer_referral_bonuses as setting', 'setting.agent_lvl', '=', 'agents.lvl')
+            ->where('agents.status', '1')
+            ->where('users.status', '1')
+            ->orderBy('agents.code', 'asc');
+
+        if(!empty($agent_code)){
+            $query->where('agents.code', 'like', '%'.$agent_code.'%');
+        }
+        if(!empty($agent_name)){
+            $query->where(DB::raw('CONCAT(agents.f_name, " ", agents.l_name)'), 'like', '%'.$agent_name.'%');
+        }
+        if(!empty($customer_code)){
+            $query->where('users.code', 'like', '%'.$customer_code.'%');
+        }
+        if(!empty($customer_name)){
+            $query->where(DB::raw('CONCAT(users.f_name, " ", users.l_name)'), 'like', '%'.$customer_name.'%');
+        }
+        if($claimed !== null && $claimed !== ''){
+            $query->where('users.customer_referral_bonus_claimed', $claimed);
+        }
+
+        return $query;
+    }
+
     public static function topup_bonus_pv($topup_no)
     {
         try{
@@ -4666,12 +4799,18 @@ class GlobalController extends Controller
                 throw new \Exception('Error Transaction');
             }
 
+            $send_phone = null;
             if(!empty($transaction->country_code) && !empty($transaction->phone)){
                 if($transaction->phone[0] === '0'){
                     $send_phone = $transaction->country_code.$transaction->phone;
                 }else{
                     $send_phone = $transaction->country_code.'0'.$transaction->phone;
                 }
+            }
+
+            if(empty($send_phone)){
+                \DB::commit();
+                return "ok";
             }
 
             $language = $_COOKIE['global_language'] ?? '';

@@ -14,6 +14,7 @@ use App\SettingPerformanceTier;
 use App\SettingTeamDividend;
 use App\SettingTeamMain;
 use App\SettingRefferalReward;
+use App\SettingCustomerReferralBonus;
 use App\AgentLevel;
 use App\Agent;
 use App\Product;
@@ -684,6 +685,58 @@ class SettingController extends Controller
 
         Toastr::success($translation_data['backendlang']['backendlang']['Setting Recommended Reward Successful'] ?? 'Setting Recommended Reward Successful');
         return redirect()->route('setting_recommend_bonus');
+    }
+
+    public function setting_customer_referral_bonus()
+    {
+        $selects = SettingCustomerReferralBonus::get();
+
+        $levels = AgentLevel::where('status', '1');
+        if(Auth::guard('merchant')->check()){
+        $levels = $levels->where('merchant_id', Auth::user()->code);
+        }else{
+        $levels = $levels->whereNull('merchant_id');
+        }
+        $levels = $levels->get();
+
+        $selectDetails = [];
+
+        foreach($selects as $select){
+            $selectDetails[$select->agent_lvl] = array($select->id, $select->amount, $select->target_orders);
+        }
+
+        return view('backend.settings.setting_customer_referral_bonus', ['levels'=>$levels], compact('selectDetails'));
+    }
+
+    public function save_setting_customer_referral_bonus(Request $request)
+    {
+        $translation_data = GlobalController::get_translations();
+        try{
+
+            \DB::beginTransaction();
+
+            for($a=0; $a<count($request->amount); $a++){
+                if(!empty($request->ids[$a])){
+                    $setting = SettingCustomerReferralBonus::find($request->ids[$a]);
+                }else{
+                    $setting = new SettingCustomerReferralBonus();
+                }
+                $setting->agent_lvl = $request->agent_lvl[$a];
+                $setting->amount = $request->amount[$a];
+                $setting->target_orders = $request->target_orders[$a];
+
+                $setting->save();
+            }
+
+            \DB::commit();
+
+        } catch (\Exception $e){
+            \DB::rollback();
+            return Redirect::back()->withInput($request->all())->withErrors($e->getMessage());
+        }
+
+        Toastr::success($translation_data['backendlang']['backendlang']['Setting_Customer_Referral_Bonus_Successful'] ?? 'Setting Customer Referral Bonus Successful');
+        return redirect()->route('setting_customer_referral_bonus');
     }
 
     public function setting_agent_level()

@@ -62,8 +62,8 @@ class CommissionExport  extends \PhpOffice\PhpSpreadsheet\Cell\StringValueBinder
             'affiliate_commissions.product_name',
             DB::raw('COALESCE(COALESCE(CONCAT(mt.f_name, " ", mt.l_name), CONCAT(ut.f_name, " ", ut.l_name)), CONCAT(at.f_name, " ", at.l_name)) AS buyerName'),
             DB::raw('COALESCE(COALESCE(mt.ic, ut.ic), at.ic) AS buyerIC'),
-            DB::raw('COALESCE(COALESCE(m.code, a.code), u.code) AS agentCode'),
-            DB::raw('COALESCE(COALESCE(mt.code, ut.code), at.code) AS buyerCode')
+            DB::raw('COALESCE(CONCAT(m.display_code, m.display_running_no), CONCAT(a.display_code, a.display_running_no), CONCAT(u.display_code, u.display_running_no), m.code, a.code, u.code) AS agentCode'),
+            DB::raw('COALESCE(CONCAT(mt.display_code, mt.display_running_no), CONCAT(ut.display_code, ut.display_running_no), CONCAT(at.display_code, at.display_running_no), mt.code, ut.code, at.code) AS buyerCode')
         )
             ->leftJoin('agents AS m', 'm.code', 'affiliate_commissions.user_id')
             ->leftJoin('admins AS a', 'a.code', 'affiliate_commissions.user_id')

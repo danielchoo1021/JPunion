@@ -196,8 +196,8 @@
 						<th>{{ isset($data['backendlang']['backendlang']['Transaction_Number']) ? $data['backendlang']['backendlang']['Transaction_Number'] :'' }}</th>
 						<th>{{ isset($data['backendlang']['backendlang']['Agent_Name']) ? $data['backendlang']['backendlang']['Agent_Name'] :'' }}</th>
 						<th>{{ isset($data['backendlang']['backendlang']['Agent_Code']) ? $data['backendlang']['backendlang']['Agent_Code'] :'' }}</th>
-						<th>{{ isset($data['backendlang']['backendlang']['Downline_Name']) ? $data['backendlang']['backendlang']['Downline_Code'] :'' }}</th>
-						<th>{{ isset($data['backendlang']['backendlang']['Downline_Code']) ? $data['backendlang']['backendlang']['Downline_Name'] :'' }}</th>
+						<th>{{ isset($data['backendlang']['backendlang']['Downline_Code']) ? $data['backendlang']['backendlang']['Downline_Code'] :'' }}</th>
+						<th>{{ isset($data['backendlang']['backendlang']['Downline_Name']) ? $data['backendlang']['backendlang']['Downline_Name'] :'' }}</th>
 						<th>{{ isset($data['backendlang']['backendlang']['Transaction_Amount']) ? $data['backendlang']['backendlang']['Transaction_Amount'] :'' }}</th>
 						<th>{{ isset($data['backendlang']['backendlang']['Percentage_Amount']) ? $data['backendlang']['backendlang']['Percentage_Amount'] :'' }}</th>
 						<th>{{ isset($data['backendlang']['backendlang']['Commission_Amount']) ? $data['backendlang']['backendlang']['Commission_Amount'] :'' }}</th>
@@ -234,15 +234,15 @@
 							{{ $commission->agentCode }}
 						</td>
 						<td>
-							@if(!empty($commision->from_user) || !empty($commission->buyerName))
-							{{ !empty($commision->from_user) ? $commision->from_user : $commission->buyerName }}
+							@if(!empty($commission->buyerCode))
+							{{ $commission->buyerCode }}
 							@else
 							<i class="fa fa-minus"></i>
 							@endif
 						</td>
 						<td>
-							@if(!empty($commission->buyerCode))
-							{{ $commission->buyerCode }}
+							@if(!empty($commision->from_user) || !empty($commission->buyerName))
+							{{ !empty($commision->from_user) ? $commision->from_user : $commission->buyerName }}
 							@else
 							<i class="fa fa-minus"></i>
 							@endif

@@ -476,6 +476,9 @@
 					        		<li>
 					        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['agent-report'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="agent-report">{{ isset($data['backendlang']['backendlang']['Agent_Report']) ? $data['backendlang']['backendlang']['Agent_Report'] :'' }}</a>
 					        		</li>
+					        		<li>
+					        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['customer-referral-bonus-report'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="customer-referral-bonus-report">{{ isset($data['backendlang']['backendlang']['Customer_Referral_Bonus_Report']) ? $data['backendlang']['backendlang']['Customer_Referral_Bonus_Report'] :'' }}</a>
+					        		</li>
 					        	</ul>
 					        </li>
 					        <li>
@@ -522,6 +525,17 @@
 							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['referral-reward-list'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="referral-reward-list">{{ isset($data['backendlang']['backendlang']['View']) ? $data['backendlang']['backendlang']['View'] :'' }}</a>
 							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['referral-reward-edit'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="referral-reward-edit">{{ isset($data['backendlang']['backendlang']['Edit']) ? $data['backendlang']['backendlang']['Edit'] :'' }}</a>
 							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['referral-reward-delete'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="referral-reward-delete">{{ isset($data['backendlang']['backendlang']['Delete']) ? $data['backendlang']['backendlang']['Delete'] :'' }}</a>
+							        		</li>
+							        	</ul>
+					        		</li>
+					        		<li>
+					        			<a href="javascript:void(0);" class="permission-control parent" data-id="{{ $select->id }}" data-page="">{{ isset($data['backendlang']['backendlang']['Customer_Referral_Bonus']) ? $data['backendlang']['backendlang']['Customer_Referral_Bonus'] :'' }}</a>
+							        	<ul>
+							        		<li>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['customer-referral-bonus-insert'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="customer-referral-bonus-insert">{{ isset($data['backendlang']['backendlang']['Insert']) ? $data['backendlang']['backendlang']['Insert'] :'' }}</a>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['customer-referral-bonus-list'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="customer-referral-bonus-list">{{ isset($data['backendlang']['backendlang']['View']) ? $data['backendlang']['backendlang']['View'] :'' }}</a>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['customer-referral-bonus-edit'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="customer-referral-bonus-edit">{{ isset($data['backendlang']['backendlang']['Edit']) ? $data['backendlang']['backendlang']['Edit'] :'' }}</a>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['customer-referral-bonus-delete'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="customer-referral-bonus-delete">{{ isset($data['backendlang']['backendlang']['Delete']) ? $data['backendlang']['backendlang']['Delete'] :'' }}</a>
 							        		</li>
 							        	</ul>
 					        		</li>
@@ -628,6 +642,38 @@
 							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['website-setting-list'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="website-setting-list">{{ isset($data['backendlang']['backendlang']['View']) ? $data['backendlang']['backendlang']['View'] :'' }}</a>
 							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['website-setting-edit'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="website-setting-edit">{{ isset($data['backendlang']['backendlang']['Edit']) ? $data['backendlang']['backendlang']['Edit'] :'' }}</a>
 							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['website-setting-delete'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="website-setting-delete">{{ isset($data['backendlang']['backendlang']['Delete']) ? $data['backendlang']['backendlang']['Delete'] :'' }}</a>
+							        		</li>
+							        	</ul>
+					        		</li>
+					        		<li>
+					        			<a href="javascript:void(0);" class="permission-control parent" data-id="{{ $select->id }}" data-page="">{{ isset($data['backendlang']['backendlang']['Country_Setting']) ? $data['backendlang']['backendlang']['Country_Setting'] :'' }}</a>
+							        	<ul>
+							        		<li>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['setting-website-countries'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="setting-website-countries">{{ isset($data['backendlang']['backendlang']['View']) ? $data['backendlang']['backendlang']['View'] :'' }}</a>
+							        		</li>
+							        	</ul>
+					        		</li>
+					        		<li>
+					        			<a href="javascript:void(0);" class="permission-control parent" data-id="{{ $select->id }}" data-page="">{{ isset($data['backendlang']['backendlang']['Payment_Gateway_Setting']) ? $data['backendlang']['backendlang']['Payment_Gateway_Setting'] :'' }}</a>
+							        	<ul>
+							        		<li>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['setting-payment-gateway'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="setting-payment-gateway">{{ isset($data['backendlang']['backendlang']['View']) ? $data['backendlang']['backendlang']['View'] :'' }}</a>
+							        		</li>
+							        	</ul>
+					        		</li>
+					        		<li>
+					        			<a href="javascript:void(0);" class="permission-control parent" data-id="{{ $select->id }}" data-page="">{{ isset($data['backendlang']['backendlang']['e-Invoice_Setting']) ? $data['backendlang']['backendlang']['e-Invoice_Setting'] :'' }}</a>
+							        	<ul>
+							        		<li>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['setting-einvoice'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="setting-einvoice">{{ isset($data['backendlang']['backendlang']['View']) ? $data['backendlang']['backendlang']['View'] :'' }}</a>
+							        		</li>
+							        	</ul>
+					        		</li>
+					        		<li>
+					        			<a href="javascript:void(0);" class="permission-control parent" data-id="{{ $select->id }}" data-page="">{{ isset($data['backendlang']['backendlang']['Setting_Auto_Withdrawal']) ? $data['backendlang']['backendlang']['Setting_Auto_Withdrawal'] :'' }}</a>
+							        	<ul>
+							        		<li>
+							        			<a href="javascript:void(0);" class="permission-control {{ (isset($get_permission[$select->id]['setting-auto-withdrawal'])) ? 'active' : '' }}" data-id="{{ $select->id }}" data-page="setting-auto-withdrawal">{{ isset($data['backendlang']['backendlang']['View']) ? $data['backendlang']['backendlang']['View'] :'' }}</a>
 							        		</li>
 							        	</ul>
 					        		</li>

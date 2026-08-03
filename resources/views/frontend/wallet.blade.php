@@ -951,7 +951,7 @@
 															{{ isset($data['lang']['lang']['downline']) ? $data['lang']['lang']['downline'] :'Downline'}}
 														</td>
 														<td>
-															{{ $d2['downline_by'] }} ({{ $d2['user_by'] }})
+															{{ $d2['buyer'] ?? '' }} ({{ !empty($d2['buyerCode']) ? $d2['buyerCode'] : $d2['user_by'] }})
 														</td>
 													</tr>
 													@endif
@@ -1500,7 +1500,7 @@
 															{{ isset($data['lang']['lang']['downline']) ? $data['lang']['lang']['downline'] :'Downline'}}
 														</td>
 														<td>
-															{{ $d2['downline_by'] }} ({{ $d2['user_by'] }})
+															{{ $d2['buyer'] ?? '' }} ({{ !empty($d2['buyerCode']) ? $d2['buyerCode'] : $d2['user_by'] }})
 														</td>
 													</tr>
 													@endif
