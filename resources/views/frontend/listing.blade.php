@@ -15,12 +15,12 @@
                                 <!-- <img src="{{ asset('frontend/assets/images/introduction/IntroductionOne/content-deco.png') }}" alt="Decoration"/> -->
                             </div>
                             <form method="GET" action="{{ route('listing') }}">
-                                <div class="form-group">
-                                    <input type="text" class="form-control" name="result" placeholder="{{ isset($data['lang']['lang']['search_products']) ? $data['lang']['lang']['search_products'] :'搜索产品' }}" style="border-radius: 0px;">
+                                <div class="form-group d-flex" style="gap: 0;">
+                                    <input type="text" class="form-control" name="result" placeholder="{{ isset($data['lang']['lang']['search_products']) ? $data['lang']['lang']['search_products'] :'搜索产品' }}" style="border-radius: 0px; border-right: 0;">
+                                    <button class="btn set_button set_text" type="submit" style="border-radius: 0px; border: 1px solid #ccc; flex-shrink: 0; display: flex; align-items: center;" title="{{ isset($data['lang']['lang']['search']) ? $data['lang']['lang']['search'] :'搜索' }}">
+                                        <i class="fa fa-search"></i>
+                                    </button>
                                 </div>
-                                <button class="btn set_button set_text" style="font-size: 0.7125em;">
-                                    <i class="fa fa-search"></i> {{ isset($data['lang']['lang']['search']) ? $data['lang']['lang']['search'] :'搜索' }}
-                                </button>
                             </form>
                         </div>
                         @if(!$categories->isEmpty())

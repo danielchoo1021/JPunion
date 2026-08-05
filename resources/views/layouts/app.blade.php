@@ -1833,9 +1833,8 @@ form button{
       }
 
       .listing-image{
-        /*height: 150px !important;*/
         min-height: unset !important;
-        height: 30vh !important;
+        height: 150px !important;
     }
 }
 

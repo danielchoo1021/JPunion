@@ -159,8 +159,8 @@ Request::segment(1) == 'ForgetPassword')
                         </select>
                     </div> -->
                         
+                        @if(Auth::guard('agent')->check() || Auth::guard('web')->check() || Auth::guard('admin')->check())
                         <div class="menu-cart show-language-icon" style="position: relative;display:none">
-                            @if(Auth::guard('agent')->check() || Auth::guard('web')->check() || Auth::guard('admin')->check())
                                 <a class="menu-icon -cart language-header-btn" href="#">
                                     <img src="{{ asset('images/general/language_icon.png') }}" width="25px" alt="Language Icon">
                                 </a>
@@ -186,33 +186,8 @@ Request::segment(1) == 'ForgetPassword')
                                     </a>
                                 </div>
                             </div>
-                        @else
-                            <a class="menu-icon -cart top-profile-btn" href="#">
-                                <img src="{{ asset('images/general/icon_user.png') }}" width="33px" alt="User Icon">
-                            </a>
-                            <div style="position: absolute;
-                                        top: 35px;
-                                        right: 25px;
-                                        box-shadow: 0px 0px 6px 0 #ddd;
-                                        color: #fff;
-                                        font-size: 13px;
-                                        background-color: #fff;
-                                        z-index: 9999;
-                                        width: 200px;
-                                        display: none;" class="right-top-items">
-                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
-                                    <a href="{{ route('profile') }}">
-                                        {{ isset($data['lang']['lang']['login']) ? $data['lang']['lang']['login'] :'Login' }}
-                                    </a>
-                                </div>
-                                <div class="" align="center" style="border-bottom: 1px solid #eee; padding: 10px 0px;">
-                                    <a href="{{ route('register') }}">
-                                        {{ isset($data['lang']['lang']['register']) ? $data['lang']['lang']['register'] :'Register' }}
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
                     </div>
+                        @endif
 
                         <div class="menu-cart" style="position: relative;">
                             @if(Auth::guard('agent')->check() || Auth::guard('web')->check() || Auth::guard('admin')->check())
