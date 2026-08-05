@@ -8,10 +8,18 @@
     $rowsFirstPage = 4;
     $rowsContinuationPage = 10;
 
+    // Continuous paper roll variant (see OrderPrintService::buildPackingSlipPdf):
+    // the physical page height already grows to fit every item, so there's
+    // no fixed-height cutoff to paginate around - everything goes on the one
+    // continuous page instead of being split/chunked like the fixed label.
+    $continuousRoll = $continuousRoll ?? false;
+
     $totalQuantity = $details->sum('quantity');
 
     $pages = collect();
-    if ($details->count() <= $rowsFirstPage) {
+    if ($continuousRoll) {
+        $pages->push($details);
+    } elseif ($details->count() <= $rowsFirstPage) {
         $pages->push($details);
     } else {
         $pages->push($details->slice(0, $rowsFirstPage)->values());
@@ -126,7 +134,9 @@
             <div><b>Remarks:</b> {{ $transaction->remark }}</div>
         @endif
 
-        <div class="footer">Page {{ $pageIndex + 1 }} / {{ $totalPages }}</div>
+        @if(!$continuousRoll)
+            <div class="footer">Page {{ $pageIndex + 1 }} / {{ $totalPages }}</div>
+        @endif
 
       </div>
     </div>

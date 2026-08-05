@@ -22,7 +22,7 @@ use Illuminate\Http\Request;
  */
 class PrintAgentController extends Controller
 {
-    protected $documentTypes = ['invoice_a4', 'invoice_a5', 'packing_label'];
+    protected $documentTypes = ['invoice_a4', 'invoice_a5', 'packing_label', 'packing_label_roll'];
 
     public function queue(OrderPrintService $printService)
     {

@@ -28,6 +28,7 @@
                                 'invoice_a4' => 'Invoice (A4)',
                                 'invoice_a5' => 'Invoice (A5)',
                                 'packing_label' => 'Packing Label',
+                                'packing_label_roll' => 'Packing Label (Paper Roll)',
                             ];
 
                             if ($log->status === 'success') {

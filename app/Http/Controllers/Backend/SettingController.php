@@ -3236,6 +3236,7 @@ class SettingController extends Controller
         'invoice_a4' => 'Invoice (A4)',
         'invoice_a5' => 'Invoice (A5)',
         'packing_label' => 'Packing Label',
+        'packing_label_roll' => 'Packing Label (Paper Roll)',
     ];
 
     public function setting_printer_manage()
@@ -3260,7 +3261,7 @@ class SettingController extends Controller
     {
         $request->validate([
             'printer_name' => 'required|string|unique:printer_agent_statuses,printer_name',
-            'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label',
+            'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label,packing_label_roll',
         ]);
 
         PrinterAgentStatus::create([
@@ -3288,7 +3289,7 @@ class SettingController extends Controller
     public function setting_printer_manage_update(Request $request, $id)
     {
         $request->validate([
-            'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label',
+            'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label,packing_label_roll',
         ]);
 
         $printer = PrinterAgentStatus::findOrFail($id);
@@ -3332,7 +3333,7 @@ class SettingController extends Controller
      */
     public function setting_printer_manage_preview(string $documentType)
     {
-        if (!in_array($documentType, ['invoice_a4', 'invoice_a5', 'packing_label'], true)) {
+        if (!in_array($documentType, ['invoice_a4', 'invoice_a5', 'packing_label', 'packing_label_roll'], true)) {
             abort(404);
         }
 

@@ -83,6 +83,11 @@ class OrderPrintService
             return $this->buildPackingSlipPdf($transaction, $details);
         }
 
+        if ($documentType === 'packing_label_roll') {
+            $details = TransactionDetail::where('transaction_id', $transaction->id)->get();
+            return $this->buildPackingSlipPdf($transaction, $details, true);
+        }
+
         throw new \InvalidArgumentException("Unknown print document type: {$documentType}");
     }
 
@@ -182,7 +187,7 @@ class OrderPrintService
         return 'Online Payment';
     }
 
-    protected function buildPackingSlipPdf(Transaction $transaction, $details)
+    protected function buildPackingSlipPdf(Transaction $transaction, $details, bool $continuousRoll = false)
     {
         $admin = Admin::first();
         $webSetting = WebsiteSetting::first();
@@ -197,11 +202,25 @@ class OrderPrintService
             'website_logo' => $this->resizedLogoPath($admin->website_logo),
             'delivery_state_name' => $deliveryState->name ?? null,
             'delivery_country_name' => $deliveryCountry->country_name ?? null,
+            'continuousRoll' => $continuousRoll,
         ]);
 
-        // Real label measured by hand: 8cm x 6cm (not the printer's max-rated
-        // "4x6 inch"). 1mm = 2.83465pt -> 80mm=226.77pt, 60mm=170.08pt.
-        $pdf->setPaper([0, 0, 226.77, 170.08], 'portrait');
+        if ($continuousRoll) {
+            // Continuous thermal paper roll: same 80mm width as the fixed
+            // packing label, but dompdf still needs an explicit page height
+            // up front (there's no true "auto height" PDF page) - estimate
+            // it from the number of item lines instead of the label's fixed
+            // 60mm cutoff, with generous padding so content never clips.
+            $headerHeight = 150;
+            $rowHeight = 14;
+            $footerHeight = 20;
+            $height = $headerHeight + ($details->count() * $rowHeight) + $footerHeight;
+            $pdf->setPaper([0, 0, 226.77, $height], 'portrait');
+        } else {
+            // Real label measured by hand: 8cm x 6cm (not the printer's max-rated
+            // "4x6 inch"). 1mm = 2.83465pt -> 80mm=226.77pt, 60mm=170.08pt.
+            $pdf->setPaper([0, 0, 226.77, 170.08], 'portrait');
+        }
 
         return $pdf;
     }
