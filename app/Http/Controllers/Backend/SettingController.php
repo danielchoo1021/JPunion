@@ -1300,11 +1300,18 @@ class SettingController extends Controller
             \DB::beginTransaction();
 
             if(Auth::guard('merchant')->check()){
+                // Guest Control is shown on this page regardless of merchant
+                // permission_lvl (unlike Authorise_Merchant below), but it's
+                // still a site-wide toggle that only exists as a column on
+                // WebsiteSetting, not Merchant - update it here rather than
+                // through $website_setting below, which is a Merchant model
+                // in this branch.
+                $update_autorise = WebsiteSetting::find(1);
                 if(Auth::user()->permission_lvl == 1){
-                    $update_autorise = WebsiteSetting::find(1);
                     $update_autorise->authorise_enable = isset($request->authorise_enable) ? 1 : 0;
-                    $update_autorise->save();
                 }
+                $update_autorise->guest_control = isset($request->guest_control) ? 1 : 0;
+                $update_autorise->save();
 
                 $website_setting = Merchant::find(Auth::guard('merchant')->user()->id);
             }else{
@@ -1312,6 +1319,10 @@ class SettingController extends Controller
                 if(Auth::user()->permission_lvl == 1){
                 $website_setting->authorise_enable = isset($request->authorise_enable) ? 1 : 0;
                 }
+                // Guest Control isn't gated behind permission_lvl==1 like
+                // Authorise_Merchant - any admin who can reach this page can
+                // toggle it.
+                $website_setting->guest_control = isset($request->guest_control) ? 1 : 0;
             }
 
             // dd($website_setting->id);
@@ -3262,12 +3273,14 @@ class SettingController extends Controller
         $request->validate([
             'printer_name' => 'required|string|unique:printer_agent_statuses,printer_name',
             'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label,packing_label_roll',
+            'copies' => 'nullable|integer|min:1|max:20',
         ]);
 
         PrinterAgentStatus::create([
             'printer_name' => $request->input('printer_name'),
             'document_type' => $request->input('document_type'),
             'is_enabled' => true,
+            'copies' => $request->input('copies', 1),
         ]);
 
         // Without this, the next agent poll treats every existing paid
@@ -3290,6 +3303,7 @@ class SettingController extends Controller
     {
         $request->validate([
             'document_type' => 'required|in:invoice_a4,invoice_a5,packing_label,packing_label_roll',
+            'copies' => 'nullable|integer|min:1|max:20',
         ]);
 
         $printer = PrinterAgentStatus::findOrFail($id);
@@ -3299,6 +3313,7 @@ class SettingController extends Controller
         $printer->update([
             'document_type' => $newDocumentType,
             'is_enabled' => $request->boolean('is_enabled'),
+            'copies' => $request->input('copies', 1),
         ]);
 
         $message = 'Printer updated.';

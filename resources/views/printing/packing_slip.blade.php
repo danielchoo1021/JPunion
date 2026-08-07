@@ -1,12 +1,36 @@
 @php
     // Real physical label measured by hand: 8cm (w) x 6cm (h), landscape.
     // Page 1 gets the full header (logo/company/order/customer/address) so
-    // it can only fit a few item rows. Continuation pages only repeat the
+    // it can only fit a few item lines. Continuation pages only repeat the
     // order no + page footer, so they have much more room for items.
-    // These row counts are estimates - adjust if the packer says a page is
-    // wasting space or still cutting items off.
-    $rowsFirstPage = 4;
-    $rowsContinuationPage = 10;
+    // A product wraps onto extra lines if its name is long, or if it has a
+    // sub_category/second_sub_category, so pack pages by estimated
+    // text-line count rather than raw item count - otherwise a page of
+    // several multi-line items overflows even though it "should" fit by
+    // item count alone. The 18-char-per-line cutoff was measured directly
+    // against the items column at this font size (table-layout: fixed
+    // narrows it more than an unconstrained column would) - when in doubt
+    // this rounds up, since wasting a little space is better than an item
+    // silently spilling onto an extra label. A Chinese character renders
+    // about twice as wide as a Latin one, so it counts double towards that
+    // cutoff. These line budgets are estimates - adjust if the packer says
+    // a page is wasting space or still cutting items off.
+    // A remark takes up its own line on page 1, so leave less room for
+    // items when one is present (otherwise the footer alone gets pushed
+    // onto a wasted extra blank label).
+    $firstPageLineBudget = !empty($transaction->remark) ? 2 : 3;
+    $continuationLineBudget = 6;
+
+    $textWidthUnits = function ($text) {
+        $text = $text ?? '';
+        $cjkCount = preg_match_all('/[\x{3000}-\x{9FFF}\x{F900}-\x{FAFF}\x{FF00}-\x{FFEF}]/u', $text);
+        return (mb_strlen($text) - $cjkCount) + ($cjkCount * 2);
+    };
+
+    $lineCost = function ($detail) use ($textWidthUnits) {
+        $lines = max(1, (int) ceil($textWidthUnits($detail->product_name) / 18));
+        return $lines + (!empty($detail->sub_category) ? 1 : 0) + (!empty($detail->second_sub_category) ? 1 : 0);
+    };
 
     // Continuous paper roll variant (see OrderPrintService::buildPackingSlipPdf):
     // the physical page height already grows to fit every item, so there's
@@ -19,13 +43,24 @@
     $pages = collect();
     if ($continuousRoll) {
         $pages->push($details);
-    } elseif ($details->count() <= $rowsFirstPage) {
-        $pages->push($details);
     } else {
-        $pages->push($details->slice(0, $rowsFirstPage)->values());
-        $rest = $details->slice($rowsFirstPage)->values();
-        foreach ($rest->chunk($rowsContinuationPage) as $chunk) {
-            $pages->push($chunk);
+        $remaining = $details->values();
+        $isFirstPage = true;
+        while ($remaining->isNotEmpty()) {
+            $budget = $isFirstPage ? $firstPageLineBudget : $continuationLineBudget;
+            $chunk = collect();
+            $used = 0;
+            foreach ($remaining as $detail) {
+                $cost = $lineCost($detail);
+                if ($used > 0 && $used + $cost > $budget) {
+                    break;
+                }
+                $chunk->push($detail);
+                $used += $cost;
+            }
+            $pages->push($chunk->values());
+            $remaining = $remaining->slice($chunk->count())->values();
+            $isFirstPage = false;
         }
     }
     $totalPages = max($pages->count(), 1);
@@ -42,19 +77,46 @@
        apply the margin to a normal block div instead - percentage widths
        inside that div size correctly against its content box. */
     @page { margin: 0; }
-    body { font-family: "Open Sans", Helvetica, Arial, sans-serif; font-size: 7.5pt; color: #000; margin: 0; padding: 0; }
-    .page-content { margin: 5mm 2mm 5mm 14mm; }
+    /* "notosanssc"/"notosanstc" come first so Chinese product/customer names
+       render correctly - without a font that has CJK glyphs, dompdf falls
+       back to a Latin-only core font and prints "?" for every Chinese
+       character. Both fonts also cover Latin, so English text is unaffected. */
+    /* Explicit line-height everywhere, not just on .items: the Noto Sans
+       SC/TC CJK fonts have much taller built-in line metrics than the old
+       Open Sans, so any element left to the font's "normal" line-height
+       (the header block, footer, etc.) renders noticeably taller than
+       before - enough that the header alone can leave no room even for
+       the "Page X/Y" footer on the same physical label. */
+    body { font-family: "notosanssc", "notosanstc", "Open Sans", Helvetica, Arial, sans-serif; font-size: 7.5pt; color: #000; margin: 0; padding: 0; line-height: 1; }
+    /* The fixed die-cut label (8cm x 6cm) needs the heavy 14mm left margin
+       to clear its physical mounting edge, but the continuous paper roll
+       has no such edge - reusing that same asymmetric margin on the roll
+       just pushes everything off-center to the right, cutting off the
+       right-hand text (e.g. "Tel:") near the paper's edge. */
+    .page-content { margin: {{ $continuousRoll ? '5mm 4mm 5mm 4mm' : '5mm 2mm 5mm 14mm' }}; }
     table { border-collapse: collapse; width: 100%; }
     .header-table td { vertical-align: middle; }
-    .info-table { font-size: 6.5pt; }
-    .info-table td { padding: 0; line-height: 1.3; white-space: nowrap; }
+    /* table-layout: fixed + no nowrap so a long customer name/phone number
+       wraps onto a second line within its own column instead of the row
+       silently growing past the page width - white-space: nowrap doesn't
+       get "clipped" at the paper's edge the way you'd expect, it just
+       keeps drawing past it, and the printer has no ink to put there. */
+    .info-table { font-size: 7.5pt; table-layout: fixed; }
+    .info-table td { padding: 0; line-height: 1.3; width: 50%; overflow-wrap: break-word; }
+    .order-line { font-size: 11pt; font-weight: 700; margin-bottom: 1pt; }
     .text-right { text-align: right; }
     .logo { max-width: 17pt; max-height: 17pt; }
     h1 { font-size: 9pt; margin: 0; line-height: 1.1; }
     .muted { color: #333; }
     hr { border: none; border-top: 1px dashed #000; margin: 2pt 0; }
-    .items th, .items td { border-bottom: 0.5px solid #999; padding: 1.5pt 2pt; font-size: 7.5pt; text-align: left; vertical-align: top; line-height: 1.2; }
-    .items th { border-top: 1px solid #000; border-bottom: 1px solid #000; font-size: 7.5pt; }
+    /* Chinese product names have no spaces to wrap at. table-layout: fixed
+       forces the column widths below to actually be respected (an auto
+       layout table just grows past the page to fit unbreakable content),
+       and word-break lets a long name wrap mid-character instead of
+       overflowing the label. */
+    .items { table-layout: fixed; }
+    .items th, .items td { border-bottom: 0.5px solid #999; padding: 1.5pt 2pt; font-size: 9.5pt; text-align: left; vertical-align: top; line-height: 0.85; word-break: break-word; overflow-wrap: break-word; }
+    .items th { border-top: 1px solid #000; border-bottom: 1px solid #000; font-size: 9.5pt; }
     .items td.qty, .items th.qty { text-align: center; width: 22pt; }
     .total-row td { font-weight: 700; border-top: 1px solid #000; border-bottom: none; }
     .footer { text-align: center; font-size: 6.5pt; margin-top: 2pt; }
@@ -84,15 +146,28 @@
 
             <hr>
 
+            <div class="order-line">Order: {{ $transaction->transaction_no }}</div>
+
             <table class="info-table">
                 <tr>
-                    <td><b>Order:</b> {{ $transaction->transaction_no }}</td>
-                    <td class="text-right"><b>Date:</b> {{ optional($transaction->created_at)->format('d/m/Y') }} {{ optional($transaction->created_at)->format('H:i') }}</td>
+                    <td><b>Date:</b> {{ optional($transaction->created_at)->format('d/m/Y') }} {{ optional($transaction->created_at)->format('H:i') }}</td>
                 </tr>
-                <tr>
-                    <td><b>Customer:</b> {{ $transaction->address_name }}</td>
-                    <td class="text-right"><b>Tel:</b> {{ !empty($transaction->country_code) ? '+'.$transaction->country_code.' ' : '' }}{{ $transaction->phone }}</td>
-                </tr>
+                @if($continuousRoll)
+                    {{-- Right-aligning Tel here was landing right at (or past) this
+                         printer's real printable edge on the paper roll - kept on
+                         its own line instead of guessing at a safer x-position. --}}
+                    <tr>
+                        <td><b>Customer:</b> {{ $transaction->address_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><b>Tel:</b> {{ !empty($transaction->country_code) ? '+'.$transaction->country_code.' ' : '' }}{{ $transaction->phone }}</td>
+                    </tr>
+                @else
+                    <tr>
+                        <td><b>Customer:</b> {{ $transaction->address_name }}</td>
+                        <td class="text-right"><b>Tel:</b> {{ !empty($transaction->country_code) ? '+'.$transaction->country_code.' ' : '' }}{{ $transaction->phone }}</td>
+                    </tr>
+                @endif
             </table>
 
             <div><b>Address:</b> {{ $transaction->address }}, {{ trim(collect([$transaction->postcode, $transaction->city, $delivery_state_name ?? $transaction->state])->filter()->implode(', ')) }}, {{ $delivery_country_name ?? $transaction->country }}</div>

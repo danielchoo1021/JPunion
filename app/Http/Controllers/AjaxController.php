@@ -56,6 +56,20 @@ class AjaxController extends Controller
 {
     public function AddToCart(Request $request)
     {
+        // Setting Manage > Website > Guest Control, toggled off: a visitor
+        // not logged into any guard must log in before adding to cart. The
+        // product pages already redirect to login client-side before this
+        // request is even sent (see the `auth_check` block in their AJAX
+        // handler) - this is the server-side backstop for the same rule,
+        // in case someone calls this endpoint directly.
+        $isGuest = !Auth::guard('admin')->check() && !Auth::guard('merchant')->check() && !Auth::guard('agent')->check() && !Auth::guard('web')->check() && !Auth::guard('corporate')->check();
+        if ($isGuest) {
+            $websiteSetting = WebsiteSetting::find(1);
+            if (!empty($websiteSetting) && $websiteSetting->guest_control == 0) {
+                return 'Please login to continue.';
+            }
+        }
+
         try{
 
             \DB::beginTransaction();

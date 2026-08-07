@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Admin;
+use App\PrinterAgentStatus;
 use App\State;
 use App\TblCountry;
 use App\Transaction;
 use App\TransactionDetail;
 use App\TransactionPrintLog;
 use App\WebsiteSetting;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
@@ -37,14 +39,36 @@ class OrderPrintService
             return;
         }
 
+        $invoicePrinter = config('printing.invoice_printer');
+        $labelPrinter = config('printing.label_printer');
+
         $jobs = [
-            $this->startPrintJob($transaction, 'invoice_a4', config('printing.invoice_printer'), $this->renderDocument($transaction, 'invoice_a4')),
-            $this->startPrintJob($transaction, 'packing_label', config('printing.label_printer'), $this->renderDocument($transaction, 'packing_label')),
+            $this->startPrintJob($transaction, 'invoice_a4', $invoicePrinter, $this->renderDocument($transaction, 'invoice_a4'), $this->copiesFor($invoicePrinter)),
+            $this->startPrintJob($transaction, 'packing_label', $labelPrinter, $this->renderDocument($transaction, 'packing_label'), $this->copiesFor($labelPrinter)),
         ];
 
         foreach ($jobs as $job) {
             $this->finishPrintJob($job);
         }
+    }
+
+    /**
+     * Looks up the "Copies" count set on Setting Manage > Printer Manage
+     * for this exact printer name, so 'direct' mode's fixed two-printer
+     * setup still honours the same per-printer copy count as 'queue' mode
+     * (PrintAgentController::pendingJobs()). Defaults to 1 if this printer
+     * has no PrinterAgentStatus row (e.g. only configured via .env, never
+     * added on that settings page).
+     */
+    protected function copiesFor(?string $printerName): int
+    {
+        if (empty($printerName)) {
+            return 1;
+        }
+
+        $copies = PrinterAgentStatus::where('printer_name', $printerName)->value('copies');
+
+        return $copies ? max(1, (int) $copies) : 1;
     }
 
     /**
@@ -125,10 +149,37 @@ class OrderPrintService
             'company_phone' => $webSetting->company_phone ?? $admin->phone ?? null,
             'website_logo' => $this->resizedLogoPath($admin->website_logo),
             'payment_method_label' => $this->paymentMethodLabel($transaction),
+            'purchased_by_display_code' => $this->resolveDisplayCode($transaction->user_id),
+            'paperSize' => $paperSize,
         ]);
+        self::ensureCjkFontsRegistered($pdf->getDomPDF());
         $pdf->setPaper($paperSize, 'portrait');
 
         return $pdf;
+    }
+
+    /**
+     * Transaction.user_id is the buyer's real internal `code`, not their
+     * Agent Display Code (see PROJECT.md 8.3/8.5) - a buyer can be a plain
+     * User, an Agent, or Admin acting on a customer's behalf, so this
+     * checks all three the same way TransactionExport.php already does.
+     * Falls back to the raw code if no display_code is set (pre-Display
+     * Code accounts).
+     */
+    protected function resolveDisplayCode(?string $userCode): ?string
+    {
+        if (empty($userCode)) {
+            return null;
+        }
+
+        foreach (['agents', 'users', 'admins'] as $table) {
+            $row = DB::table($table)->where('code', $userCode)->first(['display_code', 'display_running_no']);
+            if (!empty($row) && !empty($row->display_code)) {
+                return $row->display_code . $row->display_running_no;
+            }
+        }
+
+        return $userCode;
     }
 
     /**
@@ -204,6 +255,7 @@ class OrderPrintService
             'delivery_country_name' => $deliveryCountry->country_name ?? null,
             'continuousRoll' => $continuousRoll,
         ]);
+        self::ensureCjkFontsRegistered($pdf->getDomPDF());
 
         if ($continuousRoll) {
             // Continuous thermal paper roll: same 80mm width as the fixed
@@ -211,9 +263,9 @@ class OrderPrintService
             // up front (there's no true "auto height" PDF page) - estimate
             // it from the number of item lines instead of the label's fixed
             // 60mm cutoff, with generous padding so content never clips.
-            $headerHeight = 150;
-            $rowHeight = 14;
-            $footerHeight = 20;
+            $headerHeight = 170;
+            $rowHeight = 17;
+            $footerHeight = 40;
             $height = $headerHeight + ($details->count() * $rowHeight) + $footerHeight;
             $pdf->setPaper([0, 0, 226.77, $height], 'portrait');
         } else {
@@ -226,11 +278,14 @@ class OrderPrintService
     }
 
     /**
-     * Renders the PDF to a temp file and launches SumatraPDF without
-     * waiting for it to finish (Process::start(), not run()). Returns the
-     * bookkeeping needed to wait on and log the result later.
+     * Renders the PDF to a temp file and launches SumatraPDF $copies times
+     * without waiting for any of them to finish (Process::start(), not
+     * run()). Returns the bookkeeping needed to wait on and log the result
+     * later. $copies > 1 is how Setting Manage > Printer Manage's
+     * per-printer "Copies" count gets honoured in 'direct' mode - see
+     * PrintAgentController::pendingJobs() for the 'queue' mode equivalent.
      */
-    protected function startPrintJob(Transaction $transaction, string $documentType, string $printerName, $pdf)
+    protected function startPrintJob(Transaction $transaction, string $documentType, string $printerName, $pdf, int $copies = 1)
     {
         $attempt = $this->nextAttemptNumber($transaction, $documentType, $printerName);
 
@@ -250,7 +305,11 @@ class OrderPrintService
             $filePath = $tempDir . DIRECTORY_SEPARATOR . $documentType . '_' . $transaction->transaction_no . '_' . time() . '.pdf';
             file_put_contents($filePath, $pdf->output());
 
-            $job['process'] = $this->startSumatraProcess($filePath, $printerName, $documentType);
+            $processes = [];
+            for ($i = 0; $i < max(1, $copies); $i++) {
+                $processes[] = $this->startSumatraProcess($filePath, $printerName, $documentType);
+            }
+            $job['processes'] = $processes;
         } catch (\Throwable $e) {
             $job['error'] = $e->getMessage();
         }
@@ -260,6 +319,9 @@ class OrderPrintService
 
     /**
      * Waits for a job started by startPrintJob() and writes the log row.
+     * Only logged as 'success' if every copy printed cleanly - a partial
+     * failure logs 'failed' so the whole job (all copies) retries next
+     * time, rather than risk silently under-printing.
      */
     protected function finishPrintJob(array $job)
     {
@@ -271,11 +333,12 @@ class OrderPrintService
         }
 
         try {
-            $process = $job['process'];
-            $process->wait();
+            foreach ($job['processes'] as $process) {
+                $process->wait();
 
-            if (!$process->isSuccessful()) {
-                throw new \RuntimeException("SumatraPDF exited with error code {$process->getExitCode()}");
+                if (!$process->isSuccessful()) {
+                    throw new \RuntimeException("SumatraPDF exited with error code {$process->getExitCode()}");
+                }
             }
 
             $this->logPrintResult($transaction, $documentType, $printerName, $attempt, 'success', null);
@@ -392,6 +455,38 @@ class OrderPrintService
         }
 
         return $count;
+    }
+
+    /**
+     * Chinese product/customer names print as "?" unless dompdf has a CJK
+     * font registered - the Base14 core fonts it falls back to are
+     * Latin-only. Registering is a one-time, per-environment setup step
+     * (it writes into storage/fonts/dompdf_font_family_cache.php), so this
+     * runs it automatically on first use instead of relying on someone to
+     * remember a manual command after every deploy/fresh install.
+     * getFont() returns null until registered, so on every later PDF this
+     * is just one cheap cache lookup per font, not a re-registration.
+     */
+    protected static function ensureCjkFontsRegistered(\Dompdf\Dompdf $dompdf): void
+    {
+        $fontMetrics = $dompdf->getFontMetrics();
+
+        foreach ([
+            'notosanssc' => 'NotoSansSC-Regular.ttf',
+            'notosanstc' => 'NotoSansTC-Regular.ttf',
+        ] as $family => $file) {
+            if ($fontMetrics->getFont($family, 'normal')) {
+                continue;
+            }
+
+            $path = storage_path('fonts/' . $file);
+            if (!is_file($path)) {
+                Log::warning("CJK font missing, Chinese text will print as '?': {$path}");
+                continue;
+            }
+
+            $fontMetrics->registerFont(['family' => $family, 'style' => 'normal', 'weight' => 'normal'], $path);
+        }
     }
 
     protected function startSumatraProcess(string $pdfFilePath, string $printerName, string $documentType): Process

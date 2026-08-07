@@ -1,4 +1,5 @@
-<?php return array (
+<?php return function ($fontDir, $rootDir) {
+return array (
   'sans-serif' => array(
     'normal' => $rootDir . '/lib/fonts/Helvetica',
     'bold' => $rootDir . '/lib/fonts/Helvetica-Bold',
@@ -86,4 +87,11 @@
     'normal' => $fontDir . '/pt_serif_normal_f738b32aab955201f7da96b3b3c6ce42',
     'bold' => $fontDir . '/pt_serif_bold_b8661bb2db3d83c5179d4025fa6cf626',
   ),
-) ?>
+  'notosanssc' => array(
+    'normal' => $fontDir . '/notosanssc_normal_6091640208b075f75f0cff08f024ef2f',
+  ),
+  'notosanstc' => array(
+    'normal' => $fontDir . '/notosanstc_normal_138a7dec137fc77e130c5a573e74a3ab',
+  ),
+);
+}; ?>

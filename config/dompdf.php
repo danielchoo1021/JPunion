@@ -75,8 +75,13 @@ return array(
 
         /**
          * Whether to enable font subsetting or not.
+         *
+         * Must be on for the CJK fonts (Noto Sans SC/TC, ~12-18MB each) used
+         * for Chinese product names - without subsetting, every PDF would
+         * embed the entire font file instead of just the glyphs actually
+         * used, making every invoice/label dozens of MB.
          */
-        "enable_font_subsetting" => false,
+        "enable_font_subsetting" => true,
 
         /**
          * The PDF rendering backend to use

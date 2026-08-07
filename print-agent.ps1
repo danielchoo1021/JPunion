@@ -28,6 +28,43 @@ if (-not (Test-Path $TempDir)) {
     New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
 }
 
+function Send-ToPrinter {
+    param($FilePath, $PrinterName, $Orientation)
+
+    # -print-settings must match the PDF's own shape or Sumatra rotates
+    # the content to "fit" a mismatched orientation (this bit the same
+    # print-to-SumatraPDF invocation in the PHP agent when it was
+    # missing - keep noscale + matching orientation here too).
+    #
+    # -Wait combined with -WindowStyle Hidden is a known PowerShell/.NET
+    # quirk that can hang indefinitely even after the child process has
+    # actually exited. Use -NoNewWindow (skips ShellExecute, tracks the
+    # real process handle) instead, and enforce our own timeout via
+    # WaitForExit() rather than trusting -Wait to return.
+    $proc = Start-Process -FilePath $SumatraPath `
+        -ArgumentList @("-print-to", "`"$PrinterName`"", "-print-settings", "noscale,$Orientation", "-silent", "`"$FilePath`"") `
+        -PassThru -NoNewWindow
+
+    # Touching .Handle right after Start() forces .NET to cache the
+    # process handle internally - without this, WaitForExit()/ExitCode
+    # can misreport on a Process object obtained via -PassThru, even
+    # when the process actually ran and exited fine. This was causing
+    # every real, successful print to be logged (and retried) as a
+    # failure.
+    $proc.Handle | Out-Null
+
+    $exited = $proc.WaitForExit(60000)
+    if (-not $exited) {
+        try { $proc.Kill() } catch {}
+        throw "SumatraPDF did not exit within 60s - killed it."
+    }
+
+    $proc.Refresh()
+    if ($proc.ExitCode -ne 0) {
+        throw "SumatraPDF exited with code $($proc.ExitCode)"
+    }
+}
+
 function Print-Job {
     param($Job)
 
@@ -43,7 +80,12 @@ function Print-Job {
     $printerName = $Job.printer_name
     $orientation = if ($documentType -eq "packing_label") { "landscape" } else { "portrait" }
 
-    Write-Output "Printing $documentType for $transactionNo (attempt $attempt) on `"$printerName`"..."
+    # How many physical copies this printer is set to auto-print (Setting
+    # Manage > Printer Manage) - defaults to 1 if an older server build
+    # doesn't send this field yet.
+    $copies = if ($Job.copies) { [int]$Job.copies } else { 1 }
+
+    Write-Output "Printing $documentType for $transactionNo (attempt $attempt, $copies copy/copies) on `"$printerName`"..."
 
     try {
         $pdfUrl = "$RemoteUrl/api/print-agent/pdf/$transactionId/$documentType"
@@ -51,37 +93,11 @@ function Print-Job {
 
         Invoke-WebRequest -Uri $pdfUrl -Headers $Headers -OutFile $filePath -TimeoutSec 30 -ErrorAction Stop | Out-Null
 
-        # -print-settings must match the PDF's own shape or Sumatra rotates
-        # the content to "fit" a mismatched orientation (this bit the same
-        # print-to-SumatraPDF invocation in the PHP agent when it was
-        # missing - keep noscale + matching orientation here too).
-        #
-        # -Wait combined with -WindowStyle Hidden is a known PowerShell/.NET
-        # quirk that can hang indefinitely even after the child process has
-        # actually exited. Use -NoNewWindow (skips ShellExecute, tracks the
-        # real process handle) instead, and enforce our own timeout via
-        # WaitForExit() rather than trusting -Wait to return.
-        $proc = Start-Process -FilePath $SumatraPath `
-            -ArgumentList @("-print-to", "`"$printerName`"", "-print-settings", "noscale,$orientation", "-silent", "`"$filePath`"") `
-            -PassThru -NoNewWindow
-
-        # Touching .Handle right after Start() forces .NET to cache the
-        # process handle internally - without this, WaitForExit()/ExitCode
-        # can misreport on a Process object obtained via -PassThru, even
-        # when the process actually ran and exited fine. This was causing
-        # every real, successful print to be logged (and retried) as a
-        # failure.
-        $proc.Handle | Out-Null
-
-        $exited = $proc.WaitForExit(60000)
-        if (-not $exited) {
-            try { $proc.Kill() } catch {}
-            throw "SumatraPDF did not exit within 60s - killed it."
-        }
-
-        $proc.Refresh()
-        if ($proc.ExitCode -ne 0) {
-            throw "SumatraPDF exited with code $($proc.ExitCode)"
+        # Download once, print the same file $copies times - a failure on
+        # any copy fails the whole job so it retries from copy 1 next poll,
+        # rather than risk silently under-printing.
+        for ($i = 1; $i -le $copies; $i++) {
+            Send-ToPrinter -FilePath $filePath -PrinterName $printerName -Orientation $orientation
         }
 
         Send-Ack -TransactionId $transactionId -DocumentType $documentType -PrinterName $printerName -Attempt $attempt -Status "success" -Message $null
