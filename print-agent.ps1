@@ -11,7 +11,7 @@
 #
 # ============================== CONFIG ======================================
 $Token              = "o7JEzI8lOmuSAZqYMQVXRWUbLBN30dhigPC5cTenjsDa9yxw"
-$RemoteUrl          = "https://slateblue-bear-247969.hostingersite.com"
+$RemoteUrl          = "https://hhqualityfoodsupply.com"
 $SumatraPath        = "C:\xampp\htdocs\DemoQC\demoqc\tools\SumatraPDF\SumatraPDF-3.6.1-64.exe"
 $PollSeconds        = 5
 $HeartbeatSeconds   = 60
