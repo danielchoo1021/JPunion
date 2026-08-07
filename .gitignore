@@ -17,3 +17,10 @@ yarn-error.log
 # Temp PDFs the print agent downloads/renders right before sending to
 # SumatraPDF - regenerated every print, never need to be committed.
 /print_jobs
+
+# dompdf's own auto-generated font metric cache for the base-14 fonts
+# (Helvetica etc.) - regenerated automatically whenever it's missing, not
+# something to track. Doesn't affect the actual custom fonts we do commit
+# (storage/fonts/*.ttf, dompdf_font_family_cache.php).
+/storage/fonts/*.afm.json
+/storage/fonts/installed-fonts.json
