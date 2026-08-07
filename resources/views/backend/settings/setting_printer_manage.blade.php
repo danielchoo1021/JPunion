@@ -39,6 +39,7 @@
                     <tr class="info">
                         <th>Printer</th>
                         <th>Printing Template</th>
+                        <th>Copies</th>
                         <th>Port</th>
                         <th>Status</th>
                         <th>Last Reported</th>
@@ -80,6 +81,18 @@
                                     <i class="bi bi-eye"></i> Preview Sample
                                 </a>
                             </td>
+                            <td>
+                                <form method="POST" action="{{ route('setting_printer_manage_update', $printer->id) }}" style="display: flex; gap: 4px; justify-content: center;">
+                                    @csrf
+                                    <input type="hidden" name="document_type" value="{{ $printer->document_type }}">
+                                    <input type="hidden" name="is_enabled" value="{{ $printer->is_enabled ? 1 : 0 }}">
+                                    <input type="number" name="copies" value="{{ $printer->copies }}" min="1" max="20" class="form-control" style="width: 65px;">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Save copies">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                </form>
+                                <div class="text-muted" style="font-size: 11px; margin-top: 3px;">How many copies to auto-print per order.</div>
+                            </td>
                             <td>{{ $printer->port_name ?? '-' }}</td>
                             <td>
                                 <span style="display: inline-block; padding: 3px 10px; border-radius: 10px; background-color: {{ $statusBg }}; color: #fff; font-size: 12px; font-weight: 600;">
@@ -117,7 +130,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-muted">No printers configured yet - add one below.</td>
+                            <td colspan="8" class="text-muted">No printers configured yet - add one below.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -138,7 +151,7 @@
         <form method="POST" action="{{ route('setting_printer_manage_store') }}">
             @csrf
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
                         <label><b>Printer</b></label>
                         <select name="printer_name" class="form-control" required>
@@ -149,7 +162,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
                         <label><b>Printing Template</b></label>
                         <select name="document_type" class="form-control" required>
@@ -159,7 +172,13 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label><b>Copies</b></label>
+                        <input type="number" name="copies" value="1" min="1" max="20" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <label>&nbsp;</label>
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary form-control">Add Printer</button>

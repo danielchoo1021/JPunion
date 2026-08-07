@@ -87,6 +87,7 @@ class PrintAgentController extends Controller
                         'document_type' => $printer->document_type,
                         'printer_name' => $printer->printer_name,
                         'attempt' => $printService->nextAttemptNumber($transaction, $printer->document_type, $printer->printer_name),
+                        'copies' => max(1, (int) $printer->copies),
                     ];
                 }
             }

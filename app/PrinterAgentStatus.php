@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PrinterAgentStatus extends Model
 {
     protected $fillable = [
-        'document_type', 'printer_name', 'is_enabled', 'port_name', 'windows_status', 'is_ready', 'reported_at',
+        'document_type', 'printer_name', 'is_enabled', 'copies', 'port_name', 'windows_status', 'is_ready', 'reported_at',
     ];
 
     protected $casts = [

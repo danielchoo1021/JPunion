@@ -108,6 +108,32 @@ input:checked + .slider:before {
 	</div>
 
 	<div class="form-group container-box">
+		<h3>Guest Control</h3>
+		<hr>
+		<div class="row">
+			<div class="col-md-12">
+				<div class="form-group container-box">
+					<div class="row">
+						<div class="col-6">
+							<span style="font-size: 20px; color: #000;">Allow Guest Checkout</span>
+							<div class="text-muted" style="font-size: 13px;">
+								On: guests can add to cart and check out without logging in, same as today.
+								Off: clicking "Add to Cart" while not logged in sends the visitor to the login page instead.
+							</div>
+						</div>
+						<div class="col-6" align="right">
+							<label class="switch">
+							  	<input type="checkbox" name="guest_control" {{ (!empty($setting->id) && $setting->guest_control == 1) ? 'checked' : '' }}>
+							  	<span class="slider round"></span>
+							</label>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="form-group container-box">
 		<h3>{{ isset($data['backendlang']['backendlang']['Registration_Setting']) ? $data['backendlang']['backendlang']['Registration_Setting'] :'' }}</h3>
 		<hr>
 		<div class="row">

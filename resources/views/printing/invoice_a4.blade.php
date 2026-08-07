@@ -11,12 +11,36 @@
     $grandTotal = $subTotal + $transaction->shipping_fee - $transaction->discount - $transaction->ad_discount + $transaction->processing_fee;
 
     $shipToName = $transaction->address_name;
-    $shipToLines = collect([
+    // One long comma-joined line instead of a separate <div> per field - a
+    // stack of 3-4 short lines was the main thing making the header tall,
+    // and the wider Bill To column (below) gives this room to actually
+    // stay on one line for a typical address.
+    $shipToAddressLine = collect([
         $transaction->address,
         $transaction->address_2 ?? null,
         trim(collect([$transaction->postcode, $transaction->city, $delivery_state->name ?? $transaction->state])->filter()->implode(', ')),
         $delivery_country->country_name ?? $transaction->country,
-    ])->filter();
+    ])->filter()->implode(', ');
+
+    // A5 is roughly half the area of A4, so the same spacing/column widths
+    // that look fine on A4 waste a lot of relative space on A5 - tighten
+    // the header block and give the address column more width (instead of
+    // squeezing it into a 50/50 split, which wraps a normal address onto
+    // 3-4 short lines) so the header takes up less of the page overall.
+    $isA5 = ($paperSize ?? 'a4') === 'a5';
+    $pageMargin = $isA5 ? '8mm 10mm' : '12mm 14mm';
+    $logoSize = $isA5 ? 38 : 55;
+    $h1Size = $isA5 ? 11 : 14;
+    $hrMargin = $isA5 ? '3pt 0' : '6pt 0';
+    $addrTitleSize = $isA5 ? 7.5 : 8.5;
+    $addrTitleMargin = $isA5 ? 1 : 2;
+    $billToWidth = $isA5 ? '68%' : '50%';
+    $purchasedByWidth = $isA5 ? '32%' : '50%';
+    $signatureMarginTop = $isA5 ? '14pt' : '30pt';
+    $footerMarginTop = $isA5 ? '5pt' : '10pt';
+    $companyLineSize = $isA5 ? 8 : 9;
+    $subHeaderMarginTop = $isA5 ? '4pt' : '6pt';
+    $invoiceNoSize = $isA5 ? 11 : 13;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -24,33 +48,56 @@
 <meta charset="utf-8">
 <style>
     * { box-sizing: border-box; }
-    @page { margin: 12mm 14mm; }
-    body { font-family: "Open Sans", Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #000; margin: 0; padding: 0; }
+    @page { margin: {{ $pageMargin }}; }
+    /* "notosanssc"/"notosanstc" come first so Chinese product/customer names
+       render correctly - without a font that has CJK glyphs, dompdf falls
+       back to a Latin-only core font and prints "?" for every Chinese
+       character. Both fonts also cover Latin, so English text is unaffected. */
+    body { font-family: "notosanssc", "notosanstc", "Open Sans", Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #000; margin: 0; padding: 0; }
     table { border-collapse: collapse; width: 100%; }
     .muted { color: #444; }
     .text-right { text-align: right; }
-    .logo { max-width: 55pt; max-height: 55pt; }
-    h1 { font-size: 14pt; margin: 0 0 2pt 0; }
-    hr { border: none; border-top: 1px solid #000; margin: 6pt 0; }
+    .logo { max-width: {{ $logoSize }}pt; max-height: {{ $logoSize }}pt; }
+    h1 { font-size: {{ $h1Size }}pt; margin: 0 0 2pt 0; }
+    hr { border: none; border-top: 1px solid #000; margin: {{ $hrMargin }}; }
+
+    /* Company name/address/phone as a prominent, single-line-per-field
+       block at the very top - previously "muted" gray small text squeezed
+       into a narrow middle column next to Invoice No/Date/Payment.
+       No font-weight here: only the "normal" weight of the CJK fonts is
+       registered (see ensureCjkFontsRegistered()), so bolding this would
+       make dompdf fall back to a core serif font instead - fine for Latin
+       text but "?" if the company name/address is ever in Chinese. */
+    .company-line { color: #000; font-size: {{ $companyLineSize }}pt; }
+    .company-info { text-align: center; }
+
+    /* Boxed + larger so the invoice number stands out at a glance instead
+       of reading the same as the other Payment/Date labels around it. */
+    .invoice-no-box { display: inline-block; border: 1px solid #000; padding: 3pt 8pt; font-size: {{ $invoiceNoSize }}pt; font-weight: 700; }
 
     .header-table td { vertical-align: top; }
-    .info-table td { padding: 1pt 0; }
-    .info-table .label { width: 85pt; }
 
-    .addr-title { font-weight: 700; text-transform: uppercase; font-size: 8.5pt; margin-bottom: 2pt; }
+    .addr-title { font-weight: 700; text-transform: uppercase; font-size: {{ $addrTitleSize }}pt; margin-bottom: {{ $addrTitleMargin }}pt; }
 
-    .items th, .items td { border-bottom: 1px solid #ddd; padding: 4pt 5pt; font-size: 9pt; text-align: left; vertical-align: top; }
+    /* table-layout: fixed + word-break so a long/unbroken Chinese product
+       name wraps within its column instead of overflowing the page -
+       Chinese text has no spaces for the browser to find a break point at.
+       Only the Description column is left unsized so it absorbs whatever
+       width remains after the others' fixed widths. */
+    .items { table-layout: fixed; }
+    .items th, .items td { border-bottom: 1px solid #ddd; padding: 4pt 5pt; font-size: 9pt; text-align: left; vertical-align: top; word-break: break-word; overflow-wrap: break-word; }
     .items th { border-top: 1px solid #000; border-bottom: 1px solid #000; }
-    .items td.num, .items th.num { text-align: right; }
+    .items td.num, .items th.num { text-align: right; width: 60pt; }
     .items td.qty, .items th.qty { text-align: center; width: 40pt; }
+    .items td.code, .items th.code { width: 55pt; }
 
     .totals-table { width: 260pt; margin-left: auto; }
     .totals-table td { padding: 2pt 0; }
     .totals-table .grand-total td { font-weight: 700; border-top: 1px solid #000; padding-top: 4pt; }
 
-    .footer { text-align: center; font-size: 8pt; margin-top: 10pt; color: #555; }
+    .footer { text-align: center; font-size: 8pt; margin-top: {{ $footerMarginTop }}; color: #555; }
     .page-break { page-break-after: always; }
-    .signature-box { width: 220pt; margin: 30pt 0 0 0; }
+    .signature-box { width: 220pt; margin: {{ $signatureMarginTop }} 0 0 0; }
     .signature-line { border-top: 1px solid #000; text-align: center; padding-top: 3pt; font-size: 8.5pt; }
 </style>
 </head>
@@ -66,38 +113,44 @@
                         <img class="logo" src="{{ $website_logo }}">
                     @endif
                 </td>
-                <td>
+                <td class="company-info">
                     <h1>{{ $company_name }}</h1>
-                    @if(!empty($company_address))<div class="muted">{{ $company_address }}</div>@endif
-                    @if(!empty($company_phone))<div class="muted">Tel: {{ $company_phone }}</div>@endif
-                </td>
-                <td style="width: 170pt;" class="text-right">
-                    <table class="info-table">
-                        <tr><td class="label muted">Invoice No</td><td class="text-right">{{ $transaction->transaction_no }}</td></tr>
-                        <tr><td class="label muted">Date</td><td class="text-right">{{ optional($transaction->created_at)->format('d/m/Y') }}</td></tr>
-                        <tr><td class="label muted">Payment</td><td class="text-right">{{ $payment_method_label }}</td></tr>
-                    </table>
+                    @if(!empty($company_address))<div class="company-line">{{ $company_address }}</div>@endif
+                    @if(!empty($company_phone))<div class="company-line">Tel: {{ $company_phone }}</div>@endif
                 </td>
             </tr>
         </table>
 
-        <hr>
+        <table class="header-table" style="margin-top: {{ $subHeaderMarginTop }};">
+            <tr>
+                <td style="width: 50%;">
+                    <div><b>Payment:</b> {{ $payment_method_label }}</div>
+                    <div style="margin-top: 3pt;"><b>Date:</b> {{ optional($transaction->created_at)->format('d/m/Y') }}</div>
+                </td>
+                <td style="width: 50%;" class="text-right">
+                    <div class="muted" style="font-size: 8pt;">Invoice No</div>
+                    <div class="invoice-no-box">{{ $transaction->transaction_no }}</div>
+                </td>
+            </tr>
+        </table>
+
+        <hr style="margin-top: 2pt;">
 
         <table class="header-table">
             <tr>
-                <td style="width: 50%;">
+                <td style="width: {{ $billToWidth }};">
                     <div class="addr-title">Bill To</div>
                     <div><b>{{ $shipToName }}</b></div>
-                    @foreach($shipToLines as $line)
-                        <div>{{ $line }}</div>
-                    @endforeach
+                    @if(!empty($shipToAddressLine))
+                        <div>{{ $shipToAddressLine }}</div>
+                    @endif
                     @if(!empty($transaction->phone))
                         <div>Tel: {{ !empty($transaction->country_code) ? '+'.$transaction->country_code.' ' : '' }}{{ $transaction->phone }}</div>
                     @endif
                 </td>
-                <td style="width: 50%;">
+                <td style="width: {{ $purchasedByWidth }};">
                     <div class="addr-title">Purchased By</div>
-                    <div>{{ $transaction->address_name }} ({{ $transaction->user_id }})</div>
+                    <div>{{ $transaction->address_name }} ({{ $purchased_by_display_code ?? $transaction->user_id }})</div>
                     @if(!empty($transaction->email))<div>{{ $transaction->email }}</div>@endif
                 </td>
             </tr>
@@ -109,7 +162,7 @@
             <thead>
                 <tr>
                     <th style="width: 25pt;">No</th>
-                    <th>Item Code</th>
+                    <th class="code">Item Code</th>
                     <th>Description</th>
                     <th class="qty">Qty</th>
                     <th class="num">Unit Price</th>

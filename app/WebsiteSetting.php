@@ -15,6 +15,7 @@ class WebsiteSetting extends Model
         'file_member_discount_type',
         'file_member_discount_amount',
         'setting_sold_display_product',
+        'guest_control',
         'agent_discount_type',
         'agent_discount_amount',
         'fouding_member_order_amount',

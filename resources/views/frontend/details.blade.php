@@ -665,7 +665,11 @@
   	}else if(isCorporate){
   		auth_check = '{{ !empty(Auth::guard("corporate")->user()->code) ? Auth::guard("corporate")->user()->code : '' }}';
   	}else{
-  		auth_check = "1";
+  		// Not logged into any guard - a guest. Setting Manage > Website >
+  		// Guest Control decides whether that's still allowed to add to
+  		// cart (redirects to login below if not) - see the `else` on the
+  		// `if(auth_check)` a few lines down.
+  		auth_check = "{{ (optional(\App\WebsiteSetting::find(1))->guest_control ?? 1) == 1 ? '1' : '' }}";
   	}
   	
   	if(auth_check){

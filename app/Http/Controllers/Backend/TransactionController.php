@@ -763,20 +763,16 @@ class TransactionController extends Controller
                 $product_image = ProductImage::where('product_id',$request->product_id[$key])->first();
                 $variation_name = NULL;
                 $second_variation_name = NULL;
-                if (!empty($product->second_variation_enable) && !empty($product->second_variation_enable)) {
-                    
-                    $second_variations = ProductSecondVariation::find($request->hidden_second_variation_id[$key]);
-                    if (!empty($second_variations->id)) {
+                $get_pv = !empty($product->get_pv) ? $product->get_pv : 0;
+                $weight = $product->weight;
 
-                        $get_pv = $second_variations->variation_get_pv;
-                        $weight = $second_variations->variation_weight;
-                        $second_variation_name = $second_variations->variation_name;
-                    }
-                }elseif(!empty($product->variation_enable) && empty($product->second_variation_enable)){
-              
+                // A product can have both a 1st and 2nd variation enabled at
+                // once - these must be checked independently (not
+                // if/elseif), otherwise selecting a 2nd variation skips
+                // capturing the 1st variation's name/id entirely.
+                if (!empty($product->variation_enable)) {
                     $variations = ProductVariation::find($request->hidden_variation_id[$key]);
-                    if(!empty($variations->id)){
-                
+                    if (!empty($variations->id)) {
                         $get_pv = $variations->variation_get_pv;
                         $weight = $variations->variation_weight;
                         $variation_name = $variations->variation_name;
@@ -784,8 +780,15 @@ class TransactionController extends Controller
                     $agentPrice  = AgentPrice::where('product_id',$request->product_id[$key])->where('variation_id',$request->hidden_variation_id[$key])->where('agent_lvl_id',$merchant->lvl)->where('status','1')->first();
                 }else{
                     $agentPrice  = AgentPrice::where('product_id',$request->product_id[$key])->where('agent_lvl_id',$merchant->lvl)->where('status','1')->first();
-                    $get_pv = !empty($product->get_pv) ? $product->get_pv : 0;
-                    $weight = $product->weight;
+                }
+
+                if (!empty($product->second_variation_enable)) {
+                    $second_variations = ProductSecondVariation::find($request->hidden_second_variation_id[$key]);
+                    if (!empty($second_variations->id)) {
+                        $get_pv = $second_variations->variation_get_pv;
+                        $weight = $second_variations->variation_weight;
+                        $second_variation_name = $second_variations->variation_name;
+                    }
                 }
                 // $arr[] = [$request->hidden_variation_id[$key]];
                 $detail = new TransactionDetail;
